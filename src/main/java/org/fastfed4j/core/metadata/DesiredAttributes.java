@@ -161,6 +161,22 @@ public class DesiredAttributes extends Metadata {
     }
 
     @Override
+    public JSONObject toJson() {
+        JSONObject.Builder builder = new JSONObject.Builder(JSONMember.DESIRED_ATTRIBUTES);
+        for (Map.Entry<SchemaGrammar, ForSchemaGrammar> entry : desiredAttributes.entrySet()) {
+            String schemaGrammar = entry.getKey().getUrn();
+            ForSchemaGrammar value = entry.getValue();
+            JSONObject.Builder builderForSchema = new JSONObject.Builder(schemaGrammar);
+            builderForSchema.put(JSONMember.REQUIRED_USER_ATTRIBUTES, value.getRequiredUserAttributes());
+            builderForSchema.put(JSONMember.OPTIONAL_USER_ATTRIBUTES, value.getOptionalUserAttributes());
+            builderForSchema.put(JSONMember.REQUIRED_GROUP_ATTRIBUTES, value.getRequiredGroupAttributes());
+            builderForSchema.put(JSONMember.OPTIONAL_GROUP_ATTRIBUTES, value.getOptionalGroupAttributes());
+            builder.putAll(builderForSchema.build());
+        }
+        return builder.build();
+    }
+
+    @Override
     public void hydrateFromJson(JSONObject json) {
         if (json == null) return;
         json = json.unwrapObjectIfNeeded(JSONMember.DESIRED_ATTRIBUTES);

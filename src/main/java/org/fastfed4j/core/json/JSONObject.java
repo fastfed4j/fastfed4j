@@ -2,7 +2,6 @@ package org.fastfed4j.core.json;
 
 import java.util.*;
 
-import org.fastfed4j.core.constants.JSONMember;
 import org.fastfed4j.core.exception.ErrorAccumulator;
 
 /**
@@ -10,11 +9,114 @@ import org.fastfed4j.core.exception.ErrorAccumulator;
  * casting to particular data types and reporting errors when JSON contents do not conform to the expected types.
  */
 public class JSONObject {
-    public static final String PATH_DELIMITER = ".";
+    public static final String JSON_PATH_DELIMITER = ".";
 
-    private final org.json.simple.JSONObject wrappedObj;
+    private final org.json.simple.JSONObject impl;
     private final ErrorAccumulator errorAccumulator;
     private final String jsonPath;
+
+    /**
+     * JSONObject is immutable. Builder pattern is used for construction.
+     */
+    public static class Builder {
+        private Optional<String> wrapperName;
+        private final JSONObject instance = new JSONObject( new ErrorAccumulator(), new org.json.simple.JSONObject());
+
+        // There isn't a deep clone method in JSON Simple. As a result, when built, this implementation simply returns
+        // the JSONObject used during construction. This opens the door to a risk that somebody builds a new JSONObject
+        // and then continues to invoke put() methods on the Builder that generated the object, causing the contents of
+        // the supposedly immutable JSONObject to mutate. To enforce a stronger promise of immutability, a flag is set
+        // after building in order to block subsequent mutations.
+        // It's a little hokey, but might be sufficient for now. To address this and other gaps, it may be appropriate
+        // in the future to switch to a more feature-rich JSON parser.
+        volatile private boolean finished = false;
+
+        public Builder() {
+            this.wrapperName = Optional.empty();
+        }
+
+        /**
+         * Construct a Builder with a JSON wrapper name.
+         *
+         * <p>Upon invoking the build() method, the JSON contents will be nested inside another object keyed by
+         * by the wrapper name. For example, if the following attributes are set:</p>
+         * <pre>
+         *     JSONObject.Builder builder = new JSONObject.Builder("Foo");
+         *     builder.put("Attribute1", "Hello");
+         *     builder.put("Attribute2", "World");
+         * </pre>
+         * then an invocation of build() would produce a JSONObject with the following contents:
+         * <pre>
+         *     {
+         *         "Foo": {
+         *             "Attribute1": "Hello",
+         *             "Attribute2": "World"
+         *         }
+         *     }
+         * </pre>
+         */
+        public Builder(String wrapperName) {
+            Objects.requireNonNull(wrapperName, "wrapperName must not be null");
+            this.wrapperName = Optional.of(wrapperName);
+        }
+
+        public Builder put(String memberName, JSONObject value) {
+            assertUnfinished();
+            if (value == null) return this;
+            instance.impl.put(memberName, value.impl);
+            return this;
+        }
+
+        public Builder put(String memberName, Collection<String> value) {
+            assertUnfinished();
+            if (value == null) return this;
+            org.json.simple.JSONArray jsonArray = new org.json.simple.JSONArray();
+            jsonArray.addAll(value);
+            instance.impl.put(memberName, jsonArray);
+            return this;
+        }
+
+        public Builder put(String memberName, Date value) {
+            assertUnfinished();
+            if (value == null) return this;
+            instance.impl.put(memberName, value.getTime());
+            return this;
+        }
+
+        public Builder put(String memberName, Object value) {
+            assertUnfinished();
+            if (value == null) return this;
+            instance.impl.put(memberName, value);
+            return this;
+        }
+
+        /*
+        public Builder put(String memberName, boolean value) {
+            assertUnfinished();
+            instance.impl.put(memberName, value);
+            return this;
+        }
+*/
+
+        public Builder putAll(JSONObject obj) {
+            instance.impl.putAll(obj.impl);
+            return this;
+        }
+
+        void assertUnfinished() {
+            if (finished) {
+                throw new RuntimeException("Illegal invocation of JSONObject.Builder on an already built instance.");
+            }
+        }
+
+        public JSONObject build() {
+            finished = true;
+            if (wrapperName.isPresent()) {
+                return new Builder().put(wrapperName.get(), instance).build();
+            }
+            return instance;
+        }
+    }
 
     protected JSONObject(ErrorAccumulator errorAccumulator, org.json.simple.JSONObject jsonObject) {
         this(errorAccumulator, "", jsonObject);
@@ -26,7 +128,7 @@ public class JSONObject {
         Objects.requireNonNull(jsonObject, "jsonObject must not be null");
         this.errorAccumulator = errorAccumulator;
         this.jsonPath = jsonPath;
-        this.wrappedObj = jsonObject;
+        this.impl = jsonObject;
     }
 
     protected static String getDisplayableObjectType(Object obj) {
@@ -76,7 +178,7 @@ public class JSONObject {
             return jsonMemberName;
         }
         else {
-            return String.join(PATH_DELIMITER, jsonPath, jsonMemberName);
+            return String.join(JSON_PATH_DELIMITER, jsonPath, jsonMemberName);
         }
     }
 
@@ -84,28 +186,24 @@ public class JSONObject {
         return errorAccumulator;
     }
 
-    public boolean containsKey(String key) {
-        return wrappedObj.containsKey(key);
+    public boolean onlyContainsKey(String key) {
+        return containsKey(key) && keySet().size() == 1;
     }
 
-    public boolean containsValueForMember(JSONMember key) {
-        return containsValueForMember(key.toString());
+    public boolean containsKey(String key) {
+        return impl.containsKey(key);
     }
 
     public boolean containsValueForMember(String key) {
-        return (wrappedObj.get(key) != null);
+        return (impl.get(key) != null);
     }
 
     public Set<String> keySet() {
-        return new HashSet<String>( wrappedObj.keySet());
-    }
-
-    public String getString(JSONMember member) {
-        return getString(member.toString());
+        return new HashSet<String>( impl.keySet());
     }
 
     public String getString(String key) {
-        Object result = wrappedObj.get(key);
+        Object result = impl.get(key);
         if (null == result) {
             return null;
         }
@@ -116,12 +214,8 @@ public class JSONObject {
         return ((String)result).trim();
     }
 
-    public Boolean getBoolean(JSONMember member) {
-        return getBoolean(member.toString());
-    }
-
     public Boolean getBoolean(String key) {
-        Object result = wrappedObj.get(key);
+        Object result = impl.get(key);
         if (null == result) {
             return null;
         }
@@ -132,12 +226,8 @@ public class JSONObject {
         return (Boolean)result;
     }
 
-    public Long getLong(JSONMember member) {
-        return getLong(member.toString());
-    }
-
     public Long getLong(String key) {
-        Object result = wrappedObj.get(key);
+        Object result = impl.get(key);
         if (null == result) {
             return null;
         }
@@ -146,10 +236,6 @@ public class JSONObject {
             return null;
         }
         return (Long)result;
-    }
-
-    public Date getDate(JSONMember member) {
-        return getDate(member.toString());
     }
 
     public Date getDate(String key) {
@@ -161,12 +247,8 @@ public class JSONObject {
         return result;
     }
 
-    public List<String> getStringList(JSONMember member) {
-        return getStringList(member.toString());
-    }
-
     public List<String> getStringList(String key) {
-        Object result = wrappedObj.get(key);
+        Object result = impl.get(key);
 
         if (null == result) {
             return null;
@@ -190,10 +272,6 @@ public class JSONObject {
         return response;
     }
 
-    public Set<String> getStringSet (JSONMember member) {
-        return getStringSet(member.toString());
-    }
-
     public Set<String> getStringSet (String key) {
         Set<String> returnVal = null;
         List<String> stringList = getStringList(key);
@@ -203,12 +281,8 @@ public class JSONObject {
         return returnVal;
     }
 
-    public JSONObject getObject(JSONMember member) {
-        return getObject(member.toString());
-    }
-
     public JSONObject getObject(String key) {
-        Object result = wrappedObj.get(key);
+        Object result = impl.get(key);
         if (null == result) {
             return null;
         }
@@ -239,12 +313,12 @@ public class JSONObject {
      *      }
      *</pre>
      * <p>This utility normalizes the contents into the latter, unwrapped form.</p>
-     * @param objectName the name of the JSON member to unwrap
+     * @param wrapperName the name of the JSON member to unwrap
      * @return unwrapped JSONObject
      */
-    public JSONObject unwrapObjectIfNeeded(JSONMember objectName) {
-        if (containsKey(objectName.toString())) {
-            return getObject(objectName);
+    public JSONObject unwrapObjectIfNeeded(String wrapperName) {
+        if (onlyContainsKey(wrapperName)) {
+            return getObject(wrapperName);
         }
         else {
             // Already unwrapped
@@ -252,4 +326,8 @@ public class JSONObject {
         }
     }
 
+    @Override
+    public String toString() {
+        return impl.toJSONString();
+    }
 }

@@ -1,6 +1,7 @@
 package org.fastfed4j.profile.saml.enterprise;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
+import org.fastfed4j.core.constants.AuthenticationProfile;
 import org.fastfed4j.core.constants.JSONMember;
 import org.fastfed4j.core.exception.ErrorAccumulator;
 import org.fastfed4j.core.json.JSONObject;
@@ -34,6 +35,14 @@ class ApplicationProviderMetadataExtension extends Metadata {
      */
     public void setDesiredAttributes(DesiredAttributes desiredAttributes) {
         this.desiredAttributes = desiredAttributes;
+    }
+
+    @Override
+    public JSONObject toJson() {
+        JSONObject.Builder builder = new JSONObject.Builder(AuthenticationProfile.ENTERPRISE_SAML.getUrn());
+        builder.putAll(super.toJson());
+        builder.putAll(desiredAttributes.toJson());
+        return builder.build();
     }
 
     @Override

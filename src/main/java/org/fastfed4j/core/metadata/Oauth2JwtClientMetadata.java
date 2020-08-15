@@ -46,6 +46,14 @@ public class Oauth2JwtClientMetadata extends ProviderAuthenticationMetadata {
     }
 
     @Override
+    public JSONObject toJson() {
+        JSONObject.Builder builder = new JSONObject.Builder(ProviderAuthenticationProtocol.OAUTH2_JWT.toString());
+        builder.putAll(super.toJson());
+        builder.put(JSONMember.JWKS_URI, jwksUri);
+        return builder.build();
+    }
+
+    @Override
     public void hydrateFromJson(JSONObject json) {
         if (json == null) return;
         super.hydrateFromJson(json);

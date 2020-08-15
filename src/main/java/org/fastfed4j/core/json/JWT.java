@@ -58,6 +58,15 @@ public abstract class JWT extends Metadata {
     }
 
     @Override
+    public JSONObject toJson() {
+        JSONObject.Builder builder = new JSONObject.Builder();
+        builder.put(JSONMember.JWT_ISSUER, issuer);
+        builder.put(JSONMember.JWT_AUDIENCE, audience);
+        builder.put(JSONMember.JWT_EXPIRATION, expiration);
+        return builder.build();
+    }
+
+    @Override
     public void hydrateFromJson(JSONObject json) {
         if (json == null) return;
         super.hydrateFromJson(json);

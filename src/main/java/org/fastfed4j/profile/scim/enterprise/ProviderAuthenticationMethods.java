@@ -1,8 +1,10 @@
 package org.fastfed4j.profile.scim.enterprise;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
+import org.fastfed4j.core.constants.AuthenticationProfile;
 import org.fastfed4j.core.constants.JSONMember;
 import org.fastfed4j.core.constants.ProviderAuthenticationProtocol;
+import org.fastfed4j.core.constants.ProvisioningProfile;
 import org.fastfed4j.core.exception.ErrorAccumulator;
 import org.fastfed4j.core.json.JSONObject;
 import org.fastfed4j.core.metadata.Metadata;
@@ -95,6 +97,13 @@ public class ProviderAuthenticationMethods extends Metadata {
             returnVal = (Oauth2JwtClientMetadata)getMetadataExtension(ProviderAuthenticationProtocol.OAUTH2_JWT.getUrn());
         }
         return returnVal;
+    }
+
+    @Override
+    public JSONObject toJson() {
+        JSONObject.Builder builder = new JSONObject.Builder(JSONMember.PROVIDER_AUTHENTICATION_METHODS);
+        builder.putAll(super.toJson());
+        return builder.build();
     }
 
     @Override

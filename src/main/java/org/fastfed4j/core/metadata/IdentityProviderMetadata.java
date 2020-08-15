@@ -8,10 +8,8 @@ import org.fastfed4j.core.exception.InvalidMetadataException;
 import org.fastfed4j.core.json.JSONObject;
 import org.fastfed4j.core.util.ValidationUtils;
 import org.fastfed4j.profile.Profile;
-import org.fastfed4j.profile.ProfileRegistry;
 
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents the Identity Provider Metadata, as defined in section 3.3.7 of the FastFed Core specification.
@@ -70,6 +68,15 @@ public class IdentityProviderMetadata extends CommonProviderMetadata {
         this.handshakeStartUri = handshakeStartUri;
     }
 
+    @Override
+    public JSONObject toJson() {
+        JSONObject.Builder builder = new JSONObject.Builder(JSONMember.IDENTITY_PROVIDER);
+        builder.putAll(super.toJson());
+        builder.put(JSONMember.JWKS_URI, jwksUri);
+        builder.put(JSONMember.FASTFED_HANDSHAKE_START_URI, handshakeStartUri);
+        return builder.build();
+    }
+
     /**
      * Retrieve Identity Provider Metadata from a URL endpoint
      * @param configuration FastFed Configuration that controls the SDK behavior
@@ -111,68 +118,17 @@ public class IdentityProviderMetadata extends CommonProviderMetadata {
         if (json == null) return;
         json = json.unwrapObjectIfNeeded(JSONMember.IDENTITY_PROVIDER);
         super.hydrateFromJson(json);
-        hydrateAttributes(json);
-        hydrateExtensions(json);
-    }
-
-    private void hydrateAttributes(JSONObject json) {
-        this.setJwksUri( json.getString(JSONMember.JWKS_URI));
-        this.setHandshakeStartUri( json.getString(JSONMember.FASTFED_HANDSHAKE_START_URI));
-    }
-
-    private void hydrateExtensions(JSONObject json) {
-        // Iterate through all the known profiles
-        ProfileRegistry registry = getFastFedConfiguration().getProfileRegistry();
-        for (String urn : registry.getAllUrns()) {
-            Profile profile = registry.getByUrn(urn);
-            //If a profile requires extended metadata, and the JSON contains it, hydrate the implementation
-            if (profile.requiresIdentityProviderMetadataExtension() && json.containsKey(urn)) {
-                Metadata implementation = registry.getByUrn(urn).newIdentityProviderMetadataExtension(getFastFedConfiguration());
-                if (implementation == null) {
-                    // This would occur from an implementation bug if a Profile indicates that a particular
-                    // extension is required, but then neglects to implement a handler for the extension.
-                    throw new RuntimeException(
-                            "Missing implementation of IdentityProviderMetadataExtension for profile '" + urn + "'");
-                }
-                implementation.hydrateFromJson(json.getObject(urn));
-                addMetadataExtension(urn, implementation);
-            }
-        }
+        hydrateExtensions(json, Profile.ExtensionType.IdentityProviderMetadata);
+        setJwksUri(json.getString(JSONMember.JWKS_URI));
+        setHandshakeStartUri(json.getString(JSONMember.FASTFED_HANDSHAKE_START_URI));
     }
 
     @Override
     public void validate(ErrorAccumulator errorAccumulator) {
         super.validate(errorAccumulator);
-        validateAttributes(errorAccumulator);
-        validateExtensions(errorAccumulator);
-    }
-
-    private void validateAttributes(ErrorAccumulator errorAccumulator) {
+        validateExtensions(errorAccumulator, getCapabilities().getAllKnownProfiles(), Profile.ExtensionType.IdentityProviderMetadata);
         validateRequiredUrl(errorAccumulator, JSONMember.JWKS_URI, jwksUri);
         validateRequiredUrl(errorAccumulator, JSONMember.FASTFED_HANDSHAKE_START_URI, handshakeStartUri);
-    }
-
-    private void validateExtensions(ErrorAccumulator errorAccumulator) {
-        Set<String> capableProfiles = getCapabilities().filterToKnownProfiles();
-        for (String profileUrn : capableProfiles) {
-            validateProfile(errorAccumulator, profileUrn);
-        }
-    }
-
-    private void validateProfile(ErrorAccumulator errorAccumulator, String profileUrn) {
-        Profile profile = getFastFedConfiguration().getProfileRegistry().getByUrn(profileUrn);
-
-        // If the Identity Provider includes a certain profile in their list of capabilities, and the profile
-        // mandates the existence of extended attributes in the metadata, ensure the extension is defined.
-        if (profile.requiresIdentityProviderMetadataExtension() && !hasMetadataExtension(profileUrn)) {
-            errorAccumulator.add("Missing value for '" + profileUrn + "'");
-            return;
-        }
-
-        // If an extension is defined, ensure it is valid.
-        if (hasMetadataExtension(profileUrn)) {
-            getMetadataExtension(profileUrn).validate(errorAccumulator);
-        }
     }
 
     @Override

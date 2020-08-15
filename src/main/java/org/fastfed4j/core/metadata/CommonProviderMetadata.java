@@ -12,7 +12,7 @@ import java.util.*;
 /**
  * Represents the Common Provider Metadata, as defined in section 3.3.6 of the FastFed Core specification.
  */
-public abstract class CommonProviderMetadata extends Metadata {
+abstract public class CommonProviderMetadata extends Metadata {
     private String entityId;
     private String providerDomain;
     private ProviderContactInformation providerContactInformation;
@@ -82,10 +82,22 @@ public abstract class CommonProviderMetadata extends Metadata {
     }
 
     @Override
+    public JSONObject toJson() {
+        JSONObject.Builder builder = new JSONObject.Builder();
+        builder.putAll(super.toJson());
+        builder.putAll(capabilities.toJson());
+        builder.putAll(displaySettings.toJson());
+        builder.putAll(providerContactInformation.toJson());
+        builder.put(JSONMember.ENTITY_ID, entityId);
+        builder.put(JSONMember.PROVIDER_DOMAIN, providerDomain);
+        return builder.build();
+    }
+
+    @Override
     public void hydrateFromJson(JSONObject jsonObj) {
         if (jsonObj == null) return;
         super.hydrateFromJson(jsonObj);
-        
+
         this.setEntityId(jsonObj.getString(JSONMember.ENTITY_ID));
         this.setProviderDomain(jsonObj.getString(JSONMember.PROVIDER_DOMAIN));
 

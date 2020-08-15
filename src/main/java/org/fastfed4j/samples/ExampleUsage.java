@@ -136,6 +136,14 @@ public class ExampleUsage {
         System.out.println("AuthenticationProfilesRemoved=" + termination.getAuthenticationProfilesRemoved());
         System.out.println("ProvisioningProfilesAdded=" + termination.getProvisioningProfilesAdded());
         System.out.println("ProvisioningProfilesRemoved=" + termination.getProvisioningProfilesRemoved());
+
+        /*
+          TO JSON
+         */
+        System.out.println("\nExample JSON Serialization\n---------------------");
+        System.out.println(idpMetadata.toJson().toString());
+        System.out.println(appMetadata.toJson().toString());
+        System.out.println(contract.toJson().toString());
     }
 
     public static String getInvalidJsonForAppMetadata() {

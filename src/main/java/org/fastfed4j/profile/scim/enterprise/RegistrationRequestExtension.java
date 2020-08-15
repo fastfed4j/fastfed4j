@@ -1,7 +1,9 @@
 package org.fastfed4j.profile.scim.enterprise;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
+import org.fastfed4j.core.constants.AuthenticationProfile;
 import org.fastfed4j.core.constants.JSONMember;
+import org.fastfed4j.core.constants.ProvisioningProfile;
 import org.fastfed4j.core.exception.ErrorAccumulator;
 import org.fastfed4j.core.json.JSONObject;
 import org.fastfed4j.core.json.JWT;
@@ -54,6 +56,15 @@ public class RegistrationRequestExtension extends JWT {
      */
     public void setProviderAuthenticationMethods(ProviderAuthenticationMethods providerAuthenticationMethods) {
         this.providerAuthenticationMethods = providerAuthenticationMethods;
+    }
+
+    @Override
+    public JSONObject toJson() {
+        JSONObject.Builder builder = new JSONObject.Builder(ProvisioningProfile.ENTERPRISE_SCIM.getUrn());
+        builder.putAll(super.toJson());
+        builder.putAll(providerContactInformation.toJson());
+        builder.putAll(providerAuthenticationMethods.toJson());
+        return builder.build();
     }
 
     @Override

@@ -41,9 +41,6 @@ public class Provider extends Metadata {
         this.providerDomain = metadata.getProviderDomain();
         this.providerContactInformation = metadata.getProviderContactInformation();
         this.displaySettings = metadata.getDisplaySettings();
-        for (Map.Entry<String, Metadata> entry : metadata.getAllMetadataExtensions().entrySet()) {
-            this.addMetadataExtension(entry.getKey(), entry.getValue());
-        }
     }
 
     /**
@@ -120,6 +117,19 @@ public class Provider extends Metadata {
      */
     public void setDisplaySettings(DisplaySettings displaySettings) {
         this.displaySettings = displaySettings;
+    }
+
+    @Override
+    public JSONObject toJson() {
+        JSONObject.Builder builder = new JSONObject.Builder();
+        builder.putAll(super.toJson());
+        builder.put(JSONMember.ENTITY_ID, entityId);
+        builder.put(JSONMember.PROVIDER_DOMAIN, providerDomain);
+        if (providerContactInformation != null)
+            builder.putAll(providerContactInformation.toJson());
+        if (displaySettings != null)
+           builder.putAll(displaySettings.toJson());
+        return builder.build();
     }
 
     @Override

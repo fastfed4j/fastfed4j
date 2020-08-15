@@ -7,6 +7,8 @@ import org.fastfed4j.core.metadata.RegistrationRequest;
 import org.fastfed4j.core.metadata.RegistrationResponse;
 import org.fastfed4j.profile.Profile;
 
+import java.util.Optional;
+
 /**
  * Represents the extensions defined in the FastFed Enterprise SAML Profile.
  */
@@ -45,8 +47,8 @@ public class EnterpriseSAML extends Profile {
     }
 
     @Override
-    public Metadata newApplicationProviderMetadataExtension(FastFedConfiguration configuration) {
-        return new ApplicationProviderMetadataExtension(configuration);
+    public Optional<Metadata> newApplicationProviderMetadataExtension(FastFedConfiguration configuration) {
+        return Optional.of(new ApplicationProviderMetadataExtension(configuration));
     }
 
     // Registration Request Extensions
@@ -56,8 +58,8 @@ public class EnterpriseSAML extends Profile {
     }
 
     @Override
-    public Metadata newRegistrationRequestExtension(FastFedConfiguration configuration) {
-        return new RegistrationRequestExtension(configuration);
+    public Optional<Metadata> newRegistrationRequestExtension(FastFedConfiguration configuration) {
+        return Optional.of(new RegistrationRequestExtension(configuration));
     }
 
     // Registration Response Extensions
@@ -67,8 +69,8 @@ public class EnterpriseSAML extends Profile {
     }
 
     @Override
-    public Metadata newRegistrationResponseExtension(FastFedConfiguration configuration) {
-        return new RegistrationResponseExtension(configuration);
+    public Optional<Metadata> newRegistrationResponseExtension(FastFedConfiguration configuration) {
+        return Optional.of(new RegistrationResponseExtension(configuration));
     }
 }
 

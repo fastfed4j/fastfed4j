@@ -58,6 +58,16 @@ public class ProviderContactInformation extends Metadata {
     }
 
     @Override
+    public JSONObject toJson() {
+        JSONObject.Builder builder = new JSONObject.Builder(JSONMember.PROVIDER_CONTACT_INFORMATION);
+        builder.putAll(super.toJson());
+        builder.put(JSONMember.ORGANIZATION, organization);
+        builder.put(JSONMember.PHONE, phone);
+        builder.put(JSONMember.EMAIL, email);
+        return builder.build();
+    }
+
+    @Override
     public void hydrateFromJson(JSONObject json) {
         if (json == null) return;
         json = json.unwrapObjectIfNeeded(JSONMember.PROVIDER_CONTACT_INFORMATION);

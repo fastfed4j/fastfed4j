@@ -1,8 +1,10 @@
 package org.fastfed4j.profile.scim.enterprise;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
+import org.fastfed4j.core.constants.AuthenticationProfile;
 import org.fastfed4j.core.constants.JSONMember;
 import org.fastfed4j.core.constants.ProviderAuthenticationProtocol;
+import org.fastfed4j.core.constants.ProvisioningProfile;
 import org.fastfed4j.core.exception.ErrorAccumulator;
 import org.fastfed4j.core.json.JSONObject;
 import org.fastfed4j.core.metadata.Metadata;
@@ -69,6 +71,16 @@ public class RegistrationResponseExtension extends Metadata {
      */
     public void setProviderAuthenticationMethod(ProviderAuthenticationMetadata providerAuthenticationMetadata) {
         this.providerAuthenticationMetadata = providerAuthenticationMetadata;
+    }
+
+    @Override
+    public JSONObject toJson() {
+        JSONObject.Builder builder = new JSONObject.Builder(ProvisioningProfile.ENTERPRISE_SCIM.getUrn());
+        builder.putAll(super.toJson());
+        builder.putAll(providerAuthenticationMetadata.toJson());
+        builder.put(JSONMember.SCIM_SERVICE_URI, scimServiceUri);
+        builder.put(JSONMember.PROVIDER_AUTHENTICATION_METHOD, providerAuthenticationProtocolUrn.getUrn());
+        return builder.build();
     }
 
     @Override

@@ -68,6 +68,16 @@ public class DisplaySettings extends Metadata {
     }
 
     @Override
+    public JSONObject toJson() {
+        JSONObject.Builder builder = new JSONObject.Builder(JSONMember.DISPLAY_SETTINGS);
+        builder.put(JSONMember.DISPLAY_NAME, displayName);
+        builder.put(JSONMember.LOGO_URI, logoUri);
+        builder.put(JSONMember.ICON_URI, iconUri);
+        builder.put(JSONMember.LICENSE, license);
+        return builder.build();
+    }
+
+    @Override
     public void hydrateFromJson(JSONObject json) {
         if (json == null) return;
         json = json.unwrapObjectIfNeeded(JSONMember.DISPLAY_SETTINGS);

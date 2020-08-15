@@ -1,7 +1,9 @@
 package org.fastfed4j.profile.scim.enterprise;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
+import org.fastfed4j.core.constants.AuthenticationProfile;
 import org.fastfed4j.core.constants.JSONMember;
+import org.fastfed4j.core.constants.ProvisioningProfile;
 import org.fastfed4j.core.exception.ErrorAccumulator;
 import org.fastfed4j.core.json.JSONObject;
 import org.fastfed4j.core.metadata.DesiredAttributes;
@@ -73,6 +75,16 @@ class ApplicationProviderMetadataExtension extends Metadata {
      */
     public void setMaxGroupMembershipChanges(long maxGroupMembershipChanges) {
         this.maxGroupMembershipChanges = maxGroupMembershipChanges;
+    }
+
+    @Override
+    public JSONObject toJson() {
+        JSONObject.Builder builder = new JSONObject.Builder(ProvisioningProfile.ENTERPRISE_SCIM.getUrn());
+        builder.putAll(super.toJson());
+        builder.putAll(desiredAttributes.toJson());
+        builder.put(JSONMember.SCIM_CAN_SUPPORT_NESTED_GROUPS, canSupportNestedGroups);
+        builder.put(JSONMember.SCIM_MAX_GROUP_MEMBERSHIP_CHANGES, maxGroupMembershipChanges);
+        return builder.build();
     }
 
     @Override

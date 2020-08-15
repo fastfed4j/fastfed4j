@@ -11,6 +11,7 @@ import org.fastfed4j.core.metadata.ApplicationProviderMetadata;
 import org.fastfed4j.core.metadata.DesiredAttributes;
 import org.fastfed4j.core.metadata.Metadata;
 import org.fastfed4j.core.metadata.Oauth2JwtServiceMetadata;
+import org.fastfed4j.profile.Profile;
 import org.fastfed4j.profile.saml.enterprise.EnterpriseSAML;
 import org.fastfed4j.profile.scim.enterprise.EnterpriseSCIM;
 
@@ -25,7 +26,8 @@ public class ApplicationProvider extends Provider {
 
     private String handshakeRegisterUri;
     private String handshakeFinalizeUri;
-    private final Map<String, Metadata> registrationResponseExtensions = new HashMap<>();
+    private Map<String, Metadata> applicationProviderMetadataExtensions = new HashMap<>();
+    private Map<String, Metadata> registrationResponseExtensions = new HashMap<>();
 
     /**
      * Constructs an empty instance
@@ -42,6 +44,9 @@ public class ApplicationProvider extends Provider {
     public ApplicationProvider(ApplicationProviderMetadata metadata) {
         super(metadata);
         this.handshakeRegisterUri = metadata.getHandshakeRegisterUri();
+        for (Map.Entry<String, Metadata> entry : metadata.getAllMetadataExtensions().entrySet()) {
+            this.addApplicationProviderMetadataExtension(entry.getKey(), entry.getValue());
+        }
     }
 
     /**
@@ -51,6 +56,8 @@ public class ApplicationProvider extends Provider {
     public ApplicationProvider(ApplicationProvider other) {
         super(other);
         this.handshakeRegisterUri = other.handshakeRegisterUri;
+        this.applicationProviderMetadataExtensions = cloneExtensions(other.applicationProviderMetadataExtensions);
+        this.registrationResponseExtensions = cloneExtensions(other.registrationResponseExtensions);
     }
 
     /**
@@ -102,8 +109,8 @@ public class ApplicationProvider extends Provider {
     public DesiredAttributes getEnterpriseSamlDesiredAttributes() {
         DesiredAttributes returnVal = null;
         EnterpriseSAML.ApplicationProviderMetadataExtension samlExtension =
-                getMetadataExtension(EnterpriseSAML.ApplicationProviderMetadataExtension.class, AuthenticationProfile.ENTERPRISE_SAML.toString());
-        if (samlExtension != null) {
+                (EnterpriseSAML.ApplicationProviderMetadataExtension)getApplicationProviderMetadataExtension(AuthenticationProfile.ENTERPRISE_SAML.toString());
+          if (samlExtension != null) {
             returnVal = samlExtension.getDesiredAttributes();
         }
         return returnVal;
@@ -133,7 +140,7 @@ public class ApplicationProvider extends Provider {
     public DesiredAttributes getEnterpriseScimDesiredAttributes() {
         DesiredAttributes returnVal = null;
         EnterpriseSCIM.ApplicationProviderMetadataExtension scimExtension =
-                getMetadataExtension(EnterpriseSCIM.ApplicationProviderMetadataExtension.class, ProvisioningProfile.ENTERPRISE_SCIM.toString());
+                (EnterpriseSCIM.ApplicationProviderMetadataExtension)getApplicationProviderMetadataExtension(ProvisioningProfile.ENTERPRISE_SCIM.toString());
         if (scimExtension != null) {
             returnVal = scimExtension.getDesiredAttributes();
         }
@@ -186,6 +193,59 @@ public class ApplicationProvider extends Provider {
     }
 
     /**
+     * The Application Provider may include additional information into it's hosted metadata files,
+     * depending on which authentication and provisioning profiles are in use.
+     * This method tests if any extended metadata has been set.
+     * @return returns true if extended metadata exists
+     */
+    public boolean hasApplicationProviderMetadataExtensions() {
+        return !applicationProviderMetadataExtensions.isEmpty();
+    }
+
+    /**
+     * The Application Provider may include additional information into it's hosted metadata files,
+     * depending on which authentication and provisioning profiles are in use.
+     * This method tests if extended metadata exists for a particular profile.
+     * @param profileUrn urn of the profile
+     * @return returns true if extended metadata exists for the profile
+     */
+    public boolean hasApplicationProviderMetadataExtension(String profileUrn) {
+        return applicationProviderMetadataExtensions.containsKey(profileUrn);
+    }
+
+    /**
+     * The Application Provider may include additional information into it's hosted metadata files,
+     * depending on which authentication and provisioning profiles are in use.
+     * This method captures the additional information into the contract for a given profile.
+     * @param profileUrn urn of the profile
+     * @param metadata contents of the metadata extension defined by the profile
+     */
+    public void addApplicationProviderMetadataExtension(String profileUrn, Metadata metadata) {
+        applicationProviderMetadataExtensions.put(profileUrn, metadata);
+    }
+
+    /**
+     * The Application Provider may include additional information into it's hosted metadata files,
+     * depending on which authentication and provisioning profiles are in use.
+     * This method returns the additional information from the contract for a given profile.
+     * @param profileUrn urn of the profile
+     * @return extended metadata for the profile
+     */
+    public Metadata getApplicationProviderMetadataExtension(String profileUrn) {
+        return applicationProviderMetadataExtensions.get(profileUrn);
+    }
+
+    /**
+     * The Application Provider may include additional information into it's hosted metadata files,
+     * depending on which authentication and provisioning profiles are in use.
+     * This method returns a table of all the extensions which have been set, keyed by the URN of the profile extension.
+     * @return table of extended metadata for all profiles, keyed by profile URNs
+     */
+    public Map<String,Metadata> getAllApplicationProviderMetadataExtensions() {
+        return applicationProviderMetadataExtensions;
+    }
+
+    /**
      * As part of the FastFed Handshake, the Application Provider may include additional information into the
      * Registration Response message depending on which authentication and provisioning profiles are in use.
      * This method captures the additional information into the contract for a given profile.
@@ -193,7 +253,17 @@ public class ApplicationProvider extends Provider {
      * @param metadata contents of the metadata extension defined by the profile
      */
     public void addRegistrationResponseExtension(String profileUrn, Metadata metadata) {
-        this.registrationResponseExtensions.put(profileUrn, metadata);
+        registrationResponseExtensions.put(profileUrn, metadata);
+    }
+
+    /**
+     * As part of the FastFed Handshake, the Application Provider may include additional information into the
+     * Registration Response message depending on which authentication and provisioning profiles are in use.
+     * This method tests if any extended metadata has been set.
+     * @return returns true if extended metadata exists
+     */
+    public boolean hasRegistrationResponseExtensions() {
+        return !registrationResponseExtensions.isEmpty();
     }
 
     /**
@@ -215,7 +285,43 @@ public class ApplicationProvider extends Provider {
      * @return extended metadata for the profile
      */
     public Metadata getRegistrationResponseExtension(String profileUrn) {
-        return this.registrationResponseExtensions.get(profileUrn);
+        return registrationResponseExtensions.get(profileUrn);
+    }
+
+    /**
+     * As part of the FastFed Handshake, the Application Provider may include additional information into the
+     * Registration Response message depending on which authentication and provisioning profiles are in use.
+     * This method returns a table of all the extensions which have been set, keyed by the URN of the profile extension.
+     * @return table of extended metadata for all profiles, keyed by profile URNs
+     */
+    public Map<String,Metadata> getAllRegistrationResponseExtensions() {
+        return registrationResponseExtensions;
+    }
+
+    @Override
+    public JSONObject toJson() {
+        JSONObject.Builder builder = new JSONObject.Builder(JSONMember.APPLICATION_PROVIDER);
+        builder.putAll(super.toJson());
+        builder.put(JSONMember.FASTFED_HANDSHAKE_REGISTER_URI, handshakeRegisterUri);
+        builder.put(JSONMember.FASTFED_HANDSHAKE_FINALIZE_URI, handshakeFinalizeUri);
+
+        if (hasApplicationProviderMetadataExtensions()) {
+            JSONObject.Builder extensionBuilder = new JSONObject.Builder(JSONMember.APPLICATION_PROVIDER_METADATA_EXTENSIONS);
+            for (Metadata extension : applicationProviderMetadataExtensions.values()) {
+                extensionBuilder.putAll(extension.toJson());
+            }
+            builder.putAll(extensionBuilder.build());
+        }
+
+        if (hasRegistrationResponseExtensions()) {
+            JSONObject.Builder extensionBuilder = new JSONObject.Builder(JSONMember.REGISTRATION_RESPONSE_EXTENSIONS);
+            for (Metadata extension : registrationResponseExtensions.values()) {
+                extensionBuilder.putAll(extension.toJson());
+            }
+            builder.putAll(extensionBuilder.build());
+        }
+
+        return builder.build();
     }
 
     @Override
@@ -223,6 +329,22 @@ public class ApplicationProvider extends Provider {
         if (json == null) return;
         json = json.unwrapObjectIfNeeded(JSONMember.APPLICATION_PROVIDER);
         super.hydrateFromJson(json);
+
+        //Unlike most other metadata classes, this one has 2 points of extension. This is because it aggregates
+        //several different artifacts together, and this includes the extended data for both
+        //ApplicationProviderMetadata and RegistrationResponse messages.
+        //As a result, both entities require hydration.
+        hydrateExtensions(
+                json.getObject(JSONMember.APPLICATION_PROVIDER_METADATA_EXTENSIONS),
+                applicationProviderMetadataExtensions,
+                Profile.ExtensionType.ApplicationProviderMetadata);
+
+        hydrateExtensions(
+                json.getObject(JSONMember.REGISTRATION_RESPONSE_EXTENSIONS),
+                registrationResponseExtensions,
+                Profile.ExtensionType.RegistrationResponse);
+
+        //Hydrate the remaining attributes.
         setHandshakeRegisterUri( json.getString(JSONMember.FASTFED_HANDSHAKE_REGISTER_URI));
         setHandshakeFinalizeUri( json.getString(JSONMember.FASTFED_HANDSHAKE_FINALIZE_URI));
     }
@@ -232,6 +354,20 @@ public class ApplicationProvider extends Provider {
         super.validate(errorAccumulator);
         validateRequiredUrl(errorAccumulator, JSONMember.FASTFED_HANDSHAKE_REGISTER_URI, handshakeRegisterUri);
         validateOptionalUrl(errorAccumulator, JSONMember.FASTFED_HANDSHAKE_FINALIZE_URI, handshakeFinalizeUri);
+    }
+
+    public void validateExtensions(ErrorAccumulator errorAccumulator, EnabledProfiles enabledProfiles) {
+        validateExtensions(
+                errorAccumulator,
+                getAllApplicationProviderMetadataExtensions(),
+                enabledProfiles.getAllProfiles(),
+                Profile.ExtensionType.ApplicationProviderMetadata);
+
+        validateExtensions(
+                errorAccumulator,
+                getAllRegistrationResponseExtensions(),
+                enabledProfiles.getAllProfiles(),
+                Profile.ExtensionType.RegistrationResponse);
     }
 
     @Override
@@ -246,5 +382,38 @@ public class ApplicationProvider extends Provider {
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), handshakeRegisterUri);
+    }
+
+    // The following methods for handling extended metadata are defined in the base Metadata class.
+    // However, since this implementation uses 2 different types of metadata extensions,
+    // the default methods are disabled in favor of the more specific versions in this class.
+    @Override
+    public void addMetadataExtension(String profileUrn, Metadata ext) {
+        throw new UnsupportedOperationException(
+                "Use either addApplicationProviderMetadataExtension() or addRegistrationResponseExtension()");
+    }
+
+    @Override
+    public Map<String, Metadata> getAllMetadataExtensions() {
+        throw new UnsupportedOperationException(
+                "Use either getAllApplicationProviderMetadataExtensions() or getAllRegistrationResponseExtensions()");
+    }
+
+    @Override
+    public boolean hasMetadataExtension(String profileUrn) {
+        throw new UnsupportedOperationException(
+                "Use either hasApplicationProviderMetadataExtension() or hasRegistrationResponseExtension()");
+    }
+
+    @Override
+    public Metadata getMetadataExtension(String profileUrn) {
+        throw new UnsupportedOperationException(
+                "Use either getApplicationProviderMetadataExtension() or getRegistrationResponseExtension()");
+    }
+
+    @Override
+    public <T> T getMetadataExtension(Class<T> type, String profileUrn) {
+        throw new UnsupportedOperationException(
+                "Use either getApplicationProviderMetadataExtension() or getRegistrationResponseExtension()");
     }
 }

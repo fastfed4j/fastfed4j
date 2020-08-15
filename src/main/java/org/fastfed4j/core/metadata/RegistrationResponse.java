@@ -67,6 +67,14 @@ public class RegistrationResponse extends Metadata {
         return getMetadataExtension(EnterpriseSCIM.RegistrationResponseExtension.class, ProvisioningProfile.ENTERPRISE_SCIM.getUrn());
     }
 
+    @Override
+    public JSONObject toJson() {
+        JSONObject.Builder builder = new JSONObject.Builder();
+        builder.putAll(super.toJson());
+        builder.put(JSONMember.FASTFED_HANDSHAKE_FINALIZE_URI, handshakeFinalizeUri);
+        return builder.build();
+    }
+
     /**
      * Map a JSON document into an instance of this class
      * @param configuration FastFed Configuration that controls the SDK behavior
@@ -93,66 +101,14 @@ public class RegistrationResponse extends Metadata {
     public void hydrateFromJson(JSONObject json) {
         if (json == null) return;
         super.hydrateFromJson(json);
-        hydrateAttributes(json);
-        hydrateExtensions(json);
-    }
-
-    private void hydrateAttributes(JSONObject json) {
+        hydrateExtensions(json, Profile.ExtensionType.RegistrationResponse);
         setHandshakeFinalizeUri( json.getString(JSONMember.FASTFED_HANDSHAKE_FINALIZE_URI));
-    }
-
-    private void hydrateExtensions(JSONObject json) {
-        ProfileRegistry registry = getFastFedConfiguration().getProfileRegistry();
-        for (String urn : registry.getAllUrns()) {
-            Profile profile = registry.getByUrn(urn);
-            if (profile.requiresRegistrationResponseExtension() && json.containsKey(urn)) {
-                Metadata extension = registry.getByUrn(urn).newRegistrationResponseExtension(getFastFedConfiguration());
-                if (extension == null) {
-                    // This would occur from an implementation bug if a Profile indicates that a particular
-                    // extension is required, but then neglects to implement a handler for the extension.
-                    throw new RuntimeException(
-                            "Missing implementation of RegistrationResponseExtension for profile '" + urn + "'");
-                }
-                extension.hydrateFromJson(json.getObject(urn));
-                addMetadataExtension(urn, extension);
-            }
-        }
     }
 
     @Override
     public void validate(ErrorAccumulator errorAccumulator) {
-        validateAttributes(errorAccumulator);
-        validateExtensions(errorAccumulator);
-    }
-
-    private void validateAttributes(ErrorAccumulator errorAccumulator) {
+        validateExtensions(errorAccumulator, enabledProfiles.getAllProfiles(), Profile.ExtensionType.RegistrationResponse);
         validateOptionalUrl(errorAccumulator, JSONMember.SCHEMA_GRAMMAR, handshakeFinalizeUri);
     }
 
-    private void validateExtensions(ErrorAccumulator errorAccumulator) {
-        // In this validation step, we only examine the profiles that were chosen to be enabled,
-        // as opposed to iterating over all known profiles in the FastFedConfiguration.
-        // The reason is because, if a profile was not used, then it is OK & correct to not include any
-        // extended metadata for it in the Registration message, and hence we should not signal a validation
-        // exception due to the absence of the extension.
-        for (String profileUrn : enabledProfiles.getAuthenticationProfiles()) {
-            validateProfile(errorAccumulator, profileUrn);
-        }
-        for (String profileUrn : enabledProfiles.getProvisioningProfiles()) {
-            validateProfile(errorAccumulator, profileUrn);
-        }
-    }
-
-    private void validateProfile(ErrorAccumulator errorAccumulator, String profileUrn) {
-        Profile profile = getFastFedConfiguration().getProfileRegistry().getByUrn(profileUrn);
-
-        if (profile.requiresRegistrationResponseExtension() && !hasMetadataExtension(profileUrn)) {
-            errorAccumulator.add("Missing value for '" + profileUrn + "'");
-            return;
-        }
-
-        if (hasMetadataExtension(profileUrn)) {
-            getMetadataExtension(profileUrn).validate(errorAccumulator);
-        }
-    }
 }

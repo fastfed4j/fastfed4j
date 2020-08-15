@@ -5,6 +5,8 @@ import org.fastfed4j.core.constants.ProvisioningProfile;
 import org.fastfed4j.core.metadata.Metadata;
 import org.fastfed4j.profile.Profile;
 
+import java.util.Optional;
+
 /**
  * Represents the extensions defined in the FastFed Enterprise SCIM Profile.
  */
@@ -44,8 +46,8 @@ public class EnterpriseSCIM extends Profile {
     }
 
     @Override
-    public Metadata newApplicationProviderMetadataExtension(FastFedConfiguration configuration) {
-        return new EnterpriseSCIM.ApplicationProviderMetadataExtension(configuration);
+    public Optional<Metadata> newApplicationProviderMetadataExtension(FastFedConfiguration configuration) {
+        return Optional.of(new EnterpriseSCIM.ApplicationProviderMetadataExtension(configuration));
     }
 
     // Registration Request Extensions
@@ -55,8 +57,8 @@ public class EnterpriseSCIM extends Profile {
     }
 
     @Override
-    public Metadata newRegistrationRequestExtension(FastFedConfiguration configuration) {
-        return new EnterpriseSCIM.RegistrationRequestExtension(configuration);
+    public Optional<Metadata> newRegistrationRequestExtension(FastFedConfiguration configuration) {
+        return Optional.of(new EnterpriseSCIM.RegistrationRequestExtension(configuration));
     }
 
     // Registration Response Extensions
@@ -66,8 +68,8 @@ public class EnterpriseSCIM extends Profile {
     }
 
     @Override
-    public Metadata newRegistrationResponseExtension(FastFedConfiguration configuration) {
-        return new EnterpriseSCIM.RegistrationResponseExtension(configuration);
+    public Optional<Metadata> newRegistrationResponseExtension(FastFedConfiguration configuration) {
+        return Optional.of(new EnterpriseSCIM.RegistrationResponseExtension(configuration));
     }
 
 }

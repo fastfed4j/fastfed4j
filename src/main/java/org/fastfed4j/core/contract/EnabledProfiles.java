@@ -79,12 +79,32 @@ public class EnabledProfiles extends Metadata {
         this.provisioningProfiles = provisioningProfiles;
     }
 
+    /**
+     * Convenience method to extract a collection of all the authentication and provisioning profile URNs
+     * specified within the Capabilities.
+     * @return authentication and provisioning profile URNs
+     */
+    public Set<String> getAllProfiles() {
+        Set<String> allProfiles = new HashSet<>();
+        allProfiles.addAll(authenticationProfiles);
+        allProfiles.addAll(provisioningProfiles);
+        return allProfiles;
+    }
+
+    @Override
+    public JSONObject toJson() {
+        JSONObject.Builder builder = new JSONObject.Builder(JSONMember.ENABLED_PROFILES);
+        builder.putAll(super.toJson());
+        builder.put(JSONMember.AUTHENTICATION_PROFILES, authenticationProfiles);
+        builder.put(JSONMember.PROVISIONING_PROFILES, provisioningProfiles);
+        return builder.build();
+    }
+
     @Override
     public void hydrateFromJson(JSONObject json) {
         if (json == null) return;
         json = json.unwrapObjectIfNeeded(JSONMember.ENABLED_PROFILES);
         super.hydrateFromJson(json);
-
         setAuthenticationProfiles( json.getStringSet(JSONMember.AUTHENTICATION_PROFILES));
         setProvisioningProfiles( json.getStringSet(JSONMember.PROVISIONING_PROFILES));
     }

@@ -11,11 +11,9 @@ import org.fastfed4j.core.json.JSONObject;
 import org.fastfed4j.core.util.ValidationUtils;
 import org.fastfed4j.profile.saml.enterprise.EnterpriseSAML;
 import org.fastfed4j.profile.Profile;
-import org.fastfed4j.profile.ProfileRegistry;
 import org.fastfed4j.profile.scim.enterprise.EnterpriseSCIM;
 
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents the Application Provider Metadata defined in section 3.3.8 of the FastFed Core specification.
@@ -110,70 +108,34 @@ public class ApplicationProviderMetadata extends CommonProviderMetadata {
     }
 
     @Override
+    public JSONObject toJson() {
+        JSONObject.Builder builder = new JSONObject.Builder(JSONMember.APPLICATION_PROVIDER);
+        builder.putAll(super.toJson());
+        builder.put(JSONMember.FASTFED_HANDSHAKE_REGISTER_URI, handshakeRegisterUri);
+
+        for (Metadata obj : getAllMetadataExtensions().values()) {
+            builder.putAll(obj.toJson());
+        }
+
+        return builder.build();
+    }
+
+    @Override
     public void hydrateFromJson(JSONObject json) {
         if (json == null) return;
         json = json.unwrapObjectIfNeeded(JSONMember.APPLICATION_PROVIDER);
         super.hydrateFromJson(json);
-        hydrateAttributes(json);
-        hydrateExtensions(json);
-    }
-
-    private void hydrateAttributes(JSONObject json) {
-        this.setHandshakeRegisterUri(json.getString(JSONMember.FASTFED_HANDSHAKE_REGISTER_URI));
-    }
-
-    private void hydrateExtensions(JSONObject json) {
-        // Iterate through all the known profiles
-        ProfileRegistry registry = getFastFedConfiguration().getProfileRegistry();
-        for (String urn : registry.getAllUrns()) {
-            Profile profile = registry.getByUrn(urn);
-            //If a profile requires extended metadata, and the JSON contains it, hydrate the implementation
-            if (profile.requiresApplicationProviderMetadataExtension() && json.containsKey(urn)) {
-                Metadata implementation = registry.getByUrn(urn).newApplicationProviderMetadataExtension(getFastFedConfiguration());
-                if (implementation == null) {
-                    // This would occur from an implementation bug if a Profile indicates that a particular
-                    // extension is required, but then neglects to implement a handler for the extension.
-                    throw new RuntimeException(
-                            "Missing implementation of ApplicationProviderMetadataExtension for profile '" + urn + "'");
-                }
-                implementation.hydrateFromJson(json.getObject(urn));
-                addMetadataExtension(urn, implementation);
-            }
-        }
+        hydrateExtensions(json, Profile.ExtensionType.ApplicationProviderMetadata);
+        setHandshakeRegisterUri(json.getString(JSONMember.FASTFED_HANDSHAKE_REGISTER_URI));
     }
 
     @Override
     public void validate(ErrorAccumulator errorAccumulator) {
         super.validate(errorAccumulator);
-        validateAttributes(errorAccumulator);
-        validateExtensions(errorAccumulator);
-    }
-
-    private void validateAttributes(ErrorAccumulator errorAccumulator) {
+        if (getCapabilities() != null) {
+            validateExtensions(errorAccumulator, getCapabilities().getAllKnownProfiles(), Profile.ExtensionType.ApplicationProviderMetadata);
+        }
         validateRequiredUrl(errorAccumulator, JSONMember.FASTFED_HANDSHAKE_REGISTER_URI, handshakeRegisterUri);
-    }
-
-    private void validateExtensions(ErrorAccumulator errorAccumulator) {
-        Set<String> capableProfiles = getCapabilities().filterToKnownProfiles();
-        for (String profileUrn : capableProfiles) {
-            validateProfile(errorAccumulator, profileUrn);
-        }
-    }
-
-    private void validateProfile(ErrorAccumulator errorAccumulator, String profileUrn) {
-        Profile profile = getFastFedConfiguration().getProfileRegistry().getByUrn(profileUrn);
-
-        // If the Application Provider includes a certain profile in their list of capabilities, and the profile
-        // mandates the existence of extended attributes in the metadata, ensure the extension is defined.
-        if (profile.requiresApplicationProviderMetadataExtension() && !hasMetadataExtension(profileUrn)) {
-            errorAccumulator.add("Missing value for '" + profileUrn + "'");
-            return;
-        }
-
-        // If an extension is defined, ensure it is valid.
-        if (hasMetadataExtension(profileUrn)) {
-            getMetadataExtension(profileUrn).validate(errorAccumulator);
-        }
     }
 
     @Override

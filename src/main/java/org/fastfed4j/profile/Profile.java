@@ -3,6 +3,8 @@ package org.fastfed4j.profile;
 import org.fastfed4j.core.configuration.FastFedConfiguration;
 import org.fastfed4j.core.metadata.Metadata;
 
+import java.util.Optional;
+
 /**
  *  Base class for all FastFed profile extensions.
  *
@@ -22,13 +24,20 @@ import org.fastfed4j.core.metadata.Metadata;
 public abstract class Profile {
     abstract public String getUrn();
 
+    public enum ExtensionType {
+        ApplicationProviderMetadata,
+        IdentityProviderMetadata,
+        RegistrationRequest,
+        RegistrationResponse
+    }
+
     public boolean requiresApplicationProviderMetadataExtension() { return false; }
     public boolean requiresIdentityProviderMetadataExtension() { return false; }
     public boolean requiresRegistrationRequestExtension() { return false; }
     public boolean requiresRegistrationResponseExtension() { return false; }
 
-    public Metadata newApplicationProviderMetadataExtension(FastFedConfiguration configuration) { return null; }
-    public Metadata newIdentityProviderMetadataExtension(FastFedConfiguration configuration) { return null; };
-    public Metadata newRegistrationRequestExtension(FastFedConfiguration configuration) { return null; }
-    public Metadata newRegistrationResponseExtension(FastFedConfiguration configuration) { return null; }
+    public Optional<Metadata> newApplicationProviderMetadataExtension(FastFedConfiguration configuration) { return Optional.empty(); }
+    public Optional<Metadata> newIdentityProviderMetadataExtension(FastFedConfiguration configuration) { return Optional.empty(); };
+    public Optional<Metadata> newRegistrationRequestExtension(FastFedConfiguration configuration) { return Optional.empty(); }
+    public Optional<Metadata> newRegistrationResponseExtension(FastFedConfiguration configuration) { return Optional.empty(); }
 }

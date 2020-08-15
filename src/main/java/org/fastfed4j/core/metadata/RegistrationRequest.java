@@ -3,6 +3,7 @@ package org.fastfed4j.core.metadata;
 import org.fastfed4j.core.configuration.FastFedConfiguration;
 import org.fastfed4j.core.constants.AuthenticationProfile;
 import org.fastfed4j.core.constants.JSONMember;
+import org.fastfed4j.core.constants.ProviderAuthenticationProtocol;
 import org.fastfed4j.core.constants.ProvisioningProfile;
 import org.fastfed4j.core.exception.ErrorAccumulator;
 import org.fastfed4j.core.exception.FastFedSecurityException;
@@ -14,6 +15,7 @@ import org.fastfed4j.profile.Profile;
 import org.fastfed4j.profile.ProfileRegistry;
 import org.fastfed4j.profile.scim.enterprise.EnterpriseSCIM;
 
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -64,6 +66,17 @@ public class RegistrationRequest extends JWT {
     }
 
     /**
+     * Convenience method to get a collection of all the authentication and provisioning profiles.
+     * @return all authentication and provisioning profile URNs contained within the RegistrationRequest
+     */
+    public Set<String> getAllProfiles() {
+        Set<String> allProfiles = new HashSet<>();
+        allProfiles.addAll(authenticationProfiles);
+        allProfiles.addAll(provisioningProfiles);
+        return allProfiles;
+    }
+
+    /**
      * Convenience method to get the extensions defined by the EnterpriseSAML profile.
      * @return EnterpriseSAML extensions, or null if the EnterpriseSAML profile is not in use.
      */
@@ -77,6 +90,15 @@ public class RegistrationRequest extends JWT {
      */
     public EnterpriseSCIM.RegistrationRequestExtension getEnterpriseScimExtension() {
         return getMetadataExtension(EnterpriseSCIM.RegistrationRequestExtension.class, ProvisioningProfile.ENTERPRISE_SCIM.getUrn());
+    }
+
+    @Override
+    public JSONObject toJson() {
+        JSONObject.Builder builder = new JSONObject.Builder();
+        builder.putAll(super.toJson());
+        builder.put(JSONMember.AUTHENTICATION_PROFILES, authenticationProfiles);
+        builder.put(JSONMember.PROVISIONING_PROFILES, provisioningProfiles);
+        return builder.build();
     }
 
     /**
@@ -104,69 +126,17 @@ public class RegistrationRequest extends JWT {
     public void hydrateFromJson(JSONObject json) {
         if (json == null) return;
         super.hydrateFromJson(json);
-        hydrateAttributes(json);
-        hydrateExtensions(json);
-    }
-
-    private void hydrateAttributes(JSONObject json) {
+        hydrateExtensions(json, Profile.ExtensionType.RegistrationRequest);
         setAuthenticationProfiles( json.getStringSet(JSONMember.AUTHENTICATION_PROFILES));
         setProvisioningProfiles( json.getStringSet(JSONMember.PROVISIONING_PROFILES));
-    }
-
-    private void hydrateExtensions(JSONObject json) {
-        ProfileRegistry registry = getFastFedConfiguration().getProfileRegistry();
-        for (String urn : registry.getAllUrns()) {
-            Profile profile = registry.getByUrn(urn);
-            if (profile.requiresRegistrationRequestExtension() && json.containsKey(urn)) {
-                Metadata extension = registry.getByUrn(urn).newRegistrationRequestExtension(getFastFedConfiguration());
-                if (extension == null) {
-                    // This would occur from an implementation bug if a Profile indicates that a particular
-                    // extension is required, but then neglects to implement a handler for the extension.
-                    throw new RuntimeException(
-                            "Missing implementation of RegistrationRequestExtension for profile '" + urn + "'");
-                }
-                extension.hydrateFromJson(json.getObject(urn));
-                addMetadataExtension(urn, extension);
-            }
-        }
     }
 
     @Override
     public void validate(ErrorAccumulator errorAccumulator) {
         super.validate(errorAccumulator);
-        validateAttributes(errorAccumulator);
-        validateExtensions(errorAccumulator);
-    }
-
-    private void validateAttributes(ErrorAccumulator errorAccumulator) {
+        validateExtensions(errorAccumulator, getAllProfiles(), Profile.ExtensionType.RegistrationRequest);
         validateOptionalStringCollection(errorAccumulator, JSONMember.AUTHENTICATION_PROFILES, authenticationProfiles);
         validateOptionalStringCollection(errorAccumulator, JSONMember.PROVISIONING_PROFILES, provisioningProfiles);
     }
 
-    private void validateExtensions(ErrorAccumulator errorAccumulator) {
-        for (String profileUrn : authenticationProfiles) {
-            validateProfile(errorAccumulator, profileUrn);
-        }
-        for (String profileUrn : provisioningProfiles) {
-            validateProfile(errorAccumulator, profileUrn);
-        }
-    }
-
-    private void validateProfile(ErrorAccumulator errorAccumulator, String profileUrn) {
-        Profile profile = getFastFedConfiguration().getProfileRegistry().getByUrn(profileUrn);
-
-        if (profile == null) {
-            errorAccumulator.add("Unrecognized profile: " + profileUrn);
-            return;
-        }
-
-        if (profile.requiresRegistrationRequestExtension() && !hasMetadataExtension(profileUrn)) {
-            errorAccumulator.add("Missing value for '" + profileUrn + "'");
-            return;
-        }
-
-        if (hasMetadataExtension(profileUrn)) {
-            getMetadataExtension(profileUrn).validate(errorAccumulator);
-        }
-    }
 }

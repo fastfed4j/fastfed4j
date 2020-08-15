@@ -24,7 +24,6 @@ import java.util.Set;
 public class Contract extends Metadata {
     private static final CompatibilityUtils compatibilityUtils = new CompatibilityUtils();
 
-    private ProfileRegistry knownProfiles;
     private IdentityProvider identityProvider;
     private ApplicationProvider applicationProvider;
     private EnabledProfiles enabledProfiles;
@@ -65,7 +64,6 @@ public class Contract extends Metadata {
      */
     public Contract(Contract other) {
         super(other);
-        this.knownProfiles = other.knownProfiles;
         this.identityProvider = new IdentityProvider(other.identityProvider);
         this.applicationProvider = new ApplicationProvider(other.applicationProvider);
         this.enabledProfiles = new EnabledProfiles(other.enabledProfiles);
@@ -245,6 +243,17 @@ public class Contract extends Metadata {
         return false;
     }
 
+    @Override
+    public JSONObject toJson() {
+        JSONObject.Builder builder = new JSONObject.Builder(JSONMember.CONTRACT);
+        builder.putAll(super.toJson());
+        builder.putAll(identityProvider.toJson());
+        builder.putAll(applicationProvider.toJson());
+        builder.putAll(enabledProfiles.toJson());
+        builder.put(JSONMember.SIGNING_ALGORITHMS, signingAlgorithms);
+        return builder.build();
+    }
+
     /**
      * Constructs a Contract from a JSON-serialized representation
      * @param configuration FastFed Configuration that controls the behavior of parsing and validation
@@ -282,15 +291,24 @@ public class Contract extends Metadata {
 
     @Override
     public void validate(ErrorAccumulator errorAccumulator) {
+        // Validate that required objects are defined
         validateRequiredObject(errorAccumulator, JSONMember.IDENTITY_PROVIDER, identityProvider);
         validateRequiredObject(errorAccumulator, JSONMember.APPLICATION_PROVIDER, applicationProvider);
         validateRequiredObject(errorAccumulator, JSONMember.ENABLED_PROFILES, enabledProfiles);
         validateRequiredStringCollection(errorAccumulator, JSONMember.SIGNING_ALGORITHMS, signingAlgorithms);
 
         // Validate the contents of each object
-        if (identityProvider != null) { identityProvider.validate(errorAccumulator); }
-        if (applicationProvider != null) { applicationProvider.validate(errorAccumulator); }
-        if (enabledProfiles != null) { enabledProfiles.validate(errorAccumulator); }
+        if (identityProvider != null) {
+            identityProvider.validate(errorAccumulator);
+            identityProvider.validateExtensions(errorAccumulator, enabledProfiles);
+        }
+        if (applicationProvider != null) {
+            applicationProvider.validate(errorAccumulator);
+            applicationProvider.validateExtensions(errorAccumulator, enabledProfiles);
+        }
+        if (enabledProfiles != null) {
+            enabledProfiles.validate(errorAccumulator);
+        }
     }
 
     @Override

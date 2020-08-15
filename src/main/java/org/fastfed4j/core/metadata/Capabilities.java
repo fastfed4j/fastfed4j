@@ -92,7 +92,7 @@ public class Capabilities extends Metadata {
      * consulting the ProfileRegistry in the FastFedConfiguration.
      * @return authentication and provisioning profile URNs
      */
-    public Set<String> filterToKnownProfiles() {
+    public Set<String> getAllKnownProfiles() {
         ProfileRegistry registry = getFastFedConfiguration().getProfileRegistry();
         Set<String> result = new HashSet<>();
         for (String profileUrn : getAllProfiles()) {
@@ -104,6 +104,17 @@ public class Capabilities extends Metadata {
             }
         }
         return result;
+    }
+
+    @Override
+    public JSONObject toJson() {
+        JSONObject.Builder builder = new JSONObject.Builder(JSONMember.CAPABILITIES);
+        builder.putAll(super.toJson());
+        builder.put(JSONMember.AUTHENTICATION_PROFILES, authenticationProfiles);
+        builder.put(JSONMember.PROVISIONING_PROFILES, provisioningProfiles);
+        builder.put(JSONMember.SCHEMA_GRAMMARS, schemaGrammars);
+        builder.put(JSONMember.SIGNING_ALGORITHMS, signingAlgorithms);
+        return builder.build();
     }
 
     @Override
