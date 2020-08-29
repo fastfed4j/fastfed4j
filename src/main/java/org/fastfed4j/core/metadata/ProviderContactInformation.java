@@ -1,9 +1,9 @@
 package org.fastfed4j.core.metadata;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
-import org.fastfed4j.core.constants.JSONMember;
+import org.fastfed4j.core.constants.JsonMember;
 import org.fastfed4j.core.exception.ErrorAccumulator;
-import org.fastfed4j.core.json.JSONObject;
+import org.fastfed4j.core.json.JsonObject;
 
 import java.util.Objects;
 
@@ -58,30 +58,30 @@ public class ProviderContactInformation extends Metadata {
     }
 
     @Override
-    public JSONObject toJson() {
-        JSONObject.Builder builder = new JSONObject.Builder(JSONMember.PROVIDER_CONTACT_INFORMATION);
+    public JsonObject toJson() {
+        JsonObject.Builder builder = new JsonObject.Builder(JsonMember.PROVIDER_CONTACT_INFORMATION);
         builder.putAll(super.toJson());
-        builder.put(JSONMember.ORGANIZATION, organization);
-        builder.put(JSONMember.PHONE, phone);
-        builder.put(JSONMember.EMAIL, email);
+        builder.put(JsonMember.ORGANIZATION, organization);
+        builder.put(JsonMember.PHONE, phone);
+        builder.put(JsonMember.EMAIL, email);
         return builder.build();
     }
 
     @Override
-    public void hydrateFromJson(JSONObject json) {
+    public void hydrateFromJson(JsonObject json) {
         if (json == null) return;
-        json = json.unwrapObjectIfNeeded(JSONMember.PROVIDER_CONTACT_INFORMATION);
+        json = json.unwrapObjectIfNeeded(JsonMember.PROVIDER_CONTACT_INFORMATION);
         super.hydrateFromJson(json);
-        this.setOrganization( json.getString(JSONMember.ORGANIZATION));
-        this.setEmail( json.getString(JSONMember.EMAIL));
-        this.setPhone( json.getString(JSONMember.PHONE));
+        this.setOrganization( json.getString(JsonMember.ORGANIZATION));
+        this.setEmail( json.getString(JsonMember.EMAIL));
+        this.setPhone( json.getString(JsonMember.PHONE));
     }
 
     @Override
     public void validate(ErrorAccumulator errorAccumulator) {
-        validateRequiredString(errorAccumulator, JSONMember.ORGANIZATION, this.organization);
-        validateRequiredString(errorAccumulator, JSONMember.PHONE, this.phone);
-        validateRequiredString(errorAccumulator, JSONMember.EMAIL, this.email);
+        validateRequiredString(errorAccumulator, JsonMember.ORGANIZATION, this.organization);
+        validateRequiredString(errorAccumulator, JsonMember.PHONE, this.phone);
+        validateRequiredString(errorAccumulator, JsonMember.EMAIL, this.email);
     }
 
     @Override

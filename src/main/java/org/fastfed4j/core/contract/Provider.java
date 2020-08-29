@@ -1,15 +1,14 @@
 package org.fastfed4j.core.contract;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
-import org.fastfed4j.core.constants.JSONMember;
+import org.fastfed4j.core.constants.JsonMember;
 import org.fastfed4j.core.exception.ErrorAccumulator;
-import org.fastfed4j.core.json.JSONObject;
+import org.fastfed4j.core.json.JsonObject;
 import org.fastfed4j.core.metadata.CommonProviderMetadata;
 import org.fastfed4j.core.metadata.DisplaySettings;
 import org.fastfed4j.core.metadata.Metadata;
 import org.fastfed4j.core.metadata.ProviderContactInformation;
 
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -51,8 +50,10 @@ public class Provider extends Metadata {
         super(other);
         this.entityId = other.entityId;
         this.providerDomain = other.providerDomain;
-        this.providerContactInformation = new ProviderContactInformation(other.providerContactInformation);
-        this.displaySettings = new DisplaySettings(other.displaySettings);
+        if (other.providerContactInformation != null)
+            this.providerContactInformation = new ProviderContactInformation(other.providerContactInformation);
+        if (other.displaySettings != null)
+            this.displaySettings = new DisplaySettings(other.displaySettings);
     }
 
     /**
@@ -120,11 +121,11 @@ public class Provider extends Metadata {
     }
 
     @Override
-    public JSONObject toJson() {
-        JSONObject.Builder builder = new JSONObject.Builder();
+    public JsonObject toJson() {
+        JsonObject.Builder builder = new JsonObject.Builder();
         builder.putAll(super.toJson());
-        builder.put(JSONMember.ENTITY_ID, entityId);
-        builder.put(JSONMember.PROVIDER_DOMAIN, providerDomain);
+        builder.put(JsonMember.ENTITY_ID, entityId);
+        builder.put(JsonMember.PROVIDER_DOMAIN, providerDomain);
         if (providerContactInformation != null)
             builder.putAll(providerContactInformation.toJson());
         if (displaySettings != null)
@@ -133,28 +134,33 @@ public class Provider extends Metadata {
     }
 
     @Override
-    public void hydrateFromJson(JSONObject json) {
+    public void hydrateFromJson(JsonObject json) {
         if (json == null) return;
         super.hydrateFromJson(json);
+        setEntityId( json.getString(JsonMember.ENTITY_ID));
+        setProviderDomain( json.getString(JsonMember.PROVIDER_DOMAIN));
 
-        setEntityId( json.getString(JSONMember.ENTITY_ID));
-        setProviderDomain( json.getString(JSONMember.PROVIDER_DOMAIN));
+        JsonObject providerContactInformationJson = json.getObject(JsonMember.PROVIDER_CONTACT_INFORMATION);
+        if (providerContactInformationJson != null) {
+            ProviderContactInformation providerContactInformation = new ProviderContactInformation(getFastFedConfiguration());
+            providerContactInformation.hydrateFromJson(providerContactInformationJson);
+            setProviderContactInformation(providerContactInformation);
+        }
 
-        ProviderContactInformation providerContactInformation = new ProviderContactInformation(getFastFedConfiguration());
-        providerContactInformation.hydrateFromJson( json.getObject(JSONMember.PROVIDER_CONTACT_INFORMATION));
-        setProviderContactInformation(providerContactInformation);
-
-        DisplaySettings displaySettings = new DisplaySettings(getFastFedConfiguration());
-        displaySettings.hydrateFromJson( json.getObject(JSONMember.DISPLAY_SETTINGS));
-        setDisplaySettings(displaySettings);
+        JsonObject displaySettingsJson = json.getObject(JsonMember.DISPLAY_SETTINGS);
+        if (displaySettingsJson != null) {
+            DisplaySettings displaySettings = new DisplaySettings(getFastFedConfiguration());
+            displaySettings.hydrateFromJson(displaySettingsJson);
+            setDisplaySettings(displaySettings);
+        }
     }
 
     @Override
     public void validate(ErrorAccumulator errorAccumulator) {
-        validateRequiredString(errorAccumulator, JSONMember.ENTITY_ID, entityId);
-        validateRequiredString(errorAccumulator, JSONMember.PROVIDER_DOMAIN, providerDomain);
-        validateRequiredObject(errorAccumulator, JSONMember.PROVIDER_CONTACT_INFORMATION, providerContactInformation);
-        validateRequiredObject(errorAccumulator, JSONMember.DISPLAY_SETTINGS, displaySettings);
+        validateRequiredString(errorAccumulator, JsonMember.ENTITY_ID, entityId);
+        validateRequiredString(errorAccumulator, JsonMember.PROVIDER_DOMAIN, providerDomain);
+        validateRequiredObject(errorAccumulator, JsonMember.PROVIDER_CONTACT_INFORMATION, providerContactInformation);
+        validateRequiredObject(errorAccumulator, JsonMember.DISPLAY_SETTINGS, displaySettings);
 
         // Validate the contents of each object
         if (providerContactInformation != null) { providerContactInformation.validate(errorAccumulator); }

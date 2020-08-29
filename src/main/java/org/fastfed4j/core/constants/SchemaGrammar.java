@@ -17,7 +17,9 @@ public enum SchemaGrammar {
         this.urn = urn;
     }
 
-    public String getUrn() { return urn; }
+    public String getUrn() {
+        return urn;
+    }
 
     @Override
     public String toString() {

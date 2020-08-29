@@ -1,11 +1,11 @@
 package org.fastfed4j.core.metadata;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
-import org.fastfed4j.core.constants.JSONMember;
 import org.fastfed4j.core.exception.ErrorAccumulator;
 import org.fastfed4j.core.exception.InvalidMetadataException;
-import org.fastfed4j.core.json.JSONObject;
-import org.fastfed4j.core.json.JSONParser;
+import org.fastfed4j.core.json.JsonObject;
+import org.fastfed4j.core.json.JsonParser;
+import org.fastfed4j.core.util.ReflectionUtils;
 import org.fastfed4j.core.util.ValidationUtils;
 import org.fastfed4j.profile.Profile;
 import org.fastfed4j.profile.ProfileRegistry;
@@ -119,26 +119,19 @@ abstract public class Metadata {
         Map<String,Metadata> clone = new HashMap<>();
         for (Map.Entry<String, Metadata> entry : other.entrySet()) {
             String profileUrn = entry.getKey();
-            Metadata originalObj = entry.getValue();
-            Metadata copyObj;
-            try {
-                //Invoke the copy constructor via reflection
-                copyObj = originalObj.getClass().getConstructor(originalObj.getClass()).newInstance(originalObj);
-                clone.put(profileUrn, copyObj);
-            }
-            catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+            Metadata originalEntry = entry.getValue();
+            Metadata clonedEntry = (Metadata) ReflectionUtils.copy(originalEntry);
+            clone.put(profileUrn, clonedEntry);
         }
         return clone;
     }
 
     /**
      * Serializes into JSON.
-     * @return JSONObject
+     * @return JsonObject
      */
-    public JSONObject toJson() {
-        JSONObject.Builder builder = new JSONObject.Builder();
+    public JsonObject toJson() {
+        JsonObject.Builder builder = new JsonObject.Builder();
         if (hasMetadataExtensions()) {
             for (Metadata obj : getAllMetadataExtensions().values()) {
                 builder.putAll(obj.toJson());
@@ -159,25 +152,25 @@ abstract public class Metadata {
         Objects.requireNonNull(jsonString, "json must not be null");
 
         ErrorAccumulator errorAccumulator = new ErrorAccumulator();
-        JSONObject json = JSONParser.parse(jsonString, errorAccumulator);
+        JsonObject json = JsonParser.parse(jsonString, errorAccumulator);
         hydrateFromJson(json);
 
         // Check for syntactic validation errors; i.e. invalid JSON
         if (errorAccumulator.hasErrors()) {
-            throw new InvalidMetadataException(errorAccumulator);
+            throw new InvalidMetadataException(errorAccumulator, jsonString);
         }
 
         // Check for semantic validation errors; i.e. non-compliance to the spec
         validate(errorAccumulator);
         if (errorAccumulator.hasErrors()) {
-            throw new InvalidMetadataException(errorAccumulator);
+            throw new InvalidMetadataException(errorAccumulator, jsonString);
         }
     }
 
     /**
      * Populates the contents of the object from a JSON representation.
      */
-    public void hydrateFromJson(JSONObject json) {
+    public void hydrateFromJson(JsonObject json) {
         if (json == null) return;
         this.jsonPath = json.getJsonPath();
     }
@@ -188,7 +181,7 @@ abstract public class Metadata {
      * @param json JSON source used for hydration
      * @param extensionType If specified, extensions of the given type will be hydrated.
      */
-    public void hydrateExtensions(JSONObject json, Profile.ExtensionType extensionType) {
+    public void hydrateExtensions(JsonObject json, Profile.ExtensionType extensionType) {
         hydrateExtensions(json, metadataExtensions, extensionType);
     }
 
@@ -201,7 +194,7 @@ abstract public class Metadata {
      * @param extensionTable the location where the hydrated metadata should be added
      * @param extensionType If specified, extensions of the given type will be hydrated.
      */
-    public void hydrateExtensions(JSONObject json,
+    public void hydrateExtensions(JsonObject json,
                                   Map<String,Metadata> extensionTable,
                                   Profile.ExtensionType extensionType)
     {
@@ -211,10 +204,12 @@ abstract public class Metadata {
         ProfileRegistry registry = getFastFedConfiguration().getProfileRegistry();
         for (String urn : registry.getAllUrns()) {
 
-            if (! json.containsValueForMember(urn)) {
+            // Confirm JSON exists for the profile
+            JsonObject extendedJson = json.getObject(urn);
+            if (extendedJson == null)
                 continue;
-            }
 
+            // Fetch the implementation of the profile
             Profile profile = registry.getByUrn(urn);
             Optional<Metadata> impl;
             switch (extensionType) {
@@ -238,7 +233,8 @@ abstract public class Metadata {
                 continue;
             }
 
-            impl.get().hydrateFromJson(json.getObject(urn));
+            // Hydrate the profile and capture in the metadata table
+            impl.get().hydrateFromJson(extendedJson);
             extensionTable.put(urn, impl.get());
         }
     }
@@ -278,25 +274,23 @@ abstract public class Metadata {
     {
         for (String profileUrn : profileUrns) {
             Profile profile = getFastFedConfiguration().getProfileRegistry().getByUrn(profileUrn);
+            if (profile == null) {
+                throw new RuntimeException("No profile is registered for " + profileUrn);
+            }
 
             boolean isRequired = false;
-            String jsonMember = null;
             switch (extensionType) {
                 case ApplicationProviderMetadata:
                     isRequired = profile.requiresApplicationProviderMetadataExtension();
-                    jsonMember = JSONMember.APPLICATION_PROVIDER_METADATA_EXTENSIONS;
                     break;
                 case IdentityProviderMetadata:
                     isRequired = profile.requiresIdentityProviderMetadataExtension();
-                    jsonMember = JSONMember.IDENTITY_PROVIDER_METADATA_EXTENSIONS;
                     break;
                 case RegistrationRequest:
                     isRequired = profile.requiresRegistrationRequestExtension();
-                    jsonMember = JSONMember.REGISTRATION_REQUEST_EXTENSIONS;
                     break;
                 case RegistrationResponse:
                     isRequired = profile.requiresRegistrationResponseExtension();
-                    jsonMember = JSONMember.REGISTRATION_RESPONSE_EXTENSIONS;
                     break;
                 default:
                     throw new RuntimeException("Unrecognized extension type: " + extensionType);
@@ -305,8 +299,7 @@ abstract public class Metadata {
             // If a party includes a certain profile in their list of capabilities, and the profile
             // mandates the existence of extended attributes, ensure the extension is defined.
             if (isRequired && !extensionTable.containsKey(profileUrn)) {
-                String fullyQualifiedName = jsonPath + "." + jsonMember + "." + profileUrn;
-                errorAccumulator.add("Missing value for '" + fullyQualifiedName + "'");
+                errorAccumulator.add("Missing extended values for profile \"" + profileUrn + "\"");
                 return;
             }
 
@@ -326,7 +319,7 @@ abstract public class Metadata {
     }
 
     protected boolean validateRequiredStringCollection(ErrorAccumulator errorAccumulator, String memberName, Collection<String> value) {
-        return validationUtils.validateOptionalStringCollection(errorAccumulator, getFullyQualifiedName(memberName), value);
+        return validationUtils.validateRequiredStringCollection(errorAccumulator, getFullyQualifiedName(memberName), value);
     }
 
     protected boolean validateRequiredDate(ErrorAccumulator errorAccumulator, String memberName, Date value) {
@@ -349,7 +342,7 @@ abstract public class Metadata {
         if (jsonPath.isEmpty()) {
             return memberName;
         } else {
-            return String.join(JSONObject.JSON_PATH_DELIMITER, jsonPath, memberName);
+            return String.join(JsonObject.JSON_PATH_DELIMITER, jsonPath, memberName);
         }
     }
 
@@ -364,5 +357,10 @@ abstract public class Metadata {
     @Override
     public int hashCode() {
         return Objects.hash(metadataExtensions);
+    }
+
+    @Override
+    public String toString() {
+        return toJson().toString();
     }
 }

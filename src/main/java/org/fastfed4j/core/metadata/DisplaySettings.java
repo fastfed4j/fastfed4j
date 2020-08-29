@@ -1,9 +1,9 @@
 package org.fastfed4j.core.metadata;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
-import org.fastfed4j.core.constants.JSONMember;
+import org.fastfed4j.core.constants.JsonMember;
 import org.fastfed4j.core.exception.ErrorAccumulator;
-import org.fastfed4j.core.json.JSONObject;
+import org.fastfed4j.core.json.JsonObject;
 
 import java.util.Objects;
 
@@ -68,32 +68,32 @@ public class DisplaySettings extends Metadata {
     }
 
     @Override
-    public JSONObject toJson() {
-        JSONObject.Builder builder = new JSONObject.Builder(JSONMember.DISPLAY_SETTINGS);
-        builder.put(JSONMember.DISPLAY_NAME, displayName);
-        builder.put(JSONMember.LOGO_URI, logoUri);
-        builder.put(JSONMember.ICON_URI, iconUri);
-        builder.put(JSONMember.LICENSE, license);
+    public JsonObject toJson() {
+        JsonObject.Builder builder = new JsonObject.Builder(JsonMember.DISPLAY_SETTINGS);
+        builder.put(JsonMember.DISPLAY_NAME, displayName);
+        builder.put(JsonMember.LOGO_URI, logoUri);
+        builder.put(JsonMember.ICON_URI, iconUri);
+        builder.put(JsonMember.LICENSE, license);
         return builder.build();
     }
 
     @Override
-    public void hydrateFromJson(JSONObject json) {
+    public void hydrateFromJson(JsonObject json) {
         if (json == null) return;
-        json = json.unwrapObjectIfNeeded(JSONMember.DISPLAY_SETTINGS);
+        json = json.unwrapObjectIfNeeded(JsonMember.DISPLAY_SETTINGS);
         super.hydrateFromJson(json);
-        this.setDisplayName( json.getString(JSONMember.DISPLAY_NAME));
-        this.setIconUri( json.getString(JSONMember.ICON_URI));
-        this.setLogoUri( json.getString(JSONMember.LOGO_URI));
-        this.setLicense( json.getString(JSONMember.LICENSE));
+        this.setDisplayName( json.getString(JsonMember.DISPLAY_NAME));
+        this.setIconUri( json.getString(JsonMember.ICON_URI));
+        this.setLogoUri( json.getString(JsonMember.LOGO_URI));
+        this.setLicense( json.getString(JsonMember.LICENSE));
     }
 
     @Override
     public void validate(ErrorAccumulator errorAccumulator) {
-         validateRequiredString(errorAccumulator, JSONMember.DISPLAY_NAME, this.displayName);
-         validateRequiredUrl(errorAccumulator, JSONMember.LICENSE, this.license);
-         validateOptionalUrl(errorAccumulator, JSONMember.LOGO_URI, this.logoUri);
-         validateOptionalUrl(errorAccumulator, JSONMember.ICON_URI, this.iconUri);
+         validateRequiredString(errorAccumulator, JsonMember.DISPLAY_NAME, this.displayName);
+         validateRequiredUrl(errorAccumulator, JsonMember.LICENSE, this.license);
+         validateOptionalUrl(errorAccumulator, JsonMember.LOGO_URI, this.logoUri);
+         validateOptionalUrl(errorAccumulator, JsonMember.ICON_URI, this.iconUri);
     }
 
     @Override

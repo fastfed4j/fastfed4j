@@ -1,9 +1,9 @@
 package org.fastfed4j.core.contract;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
-import org.fastfed4j.core.constants.JSONMember;
+import org.fastfed4j.core.constants.JsonMember;
 import org.fastfed4j.core.exception.ErrorAccumulator;
-import org.fastfed4j.core.json.JSONObject;
+import org.fastfed4j.core.json.JsonObject;
 import org.fastfed4j.core.metadata.Capabilities;
 import org.fastfed4j.core.metadata.Metadata;
 
@@ -15,16 +15,14 @@ import java.util.Set;
  * Defines the authentication and provisioning profiles that a contract will enable for end-users.
  */
 public class EnabledProfiles extends Metadata {
-    Set<String> authenticationProfiles;
-    Set<String> provisioningProfiles;
+    Set<String> authenticationProfiles = new HashSet<>();
+    Set<String> provisioningProfiles = new HashSet<>();
 
     /**
      * Constructs an empty object.
      */
     public EnabledProfiles(FastFedConfiguration configuration) {
         super(configuration);
-        this.authenticationProfiles = new HashSet<>();
-        this.provisioningProfiles = new HashSet<>();
     }
 
     /**
@@ -43,8 +41,10 @@ public class EnabledProfiles extends Metadata {
      */
     public EnabledProfiles(EnabledProfiles other) {
         super(other);
-        this.authenticationProfiles = new HashSet<String>(other.authenticationProfiles);
-        this.provisioningProfiles = new HashSet<String>(other.provisioningProfiles);
+        if (other.authenticationProfiles != null)
+            this.authenticationProfiles = new HashSet<String>(other.authenticationProfiles);
+        if (other.provisioningProfiles != null)
+            this.provisioningProfiles = new HashSet<String>(other.provisioningProfiles);
     }
 
     /**
@@ -60,7 +60,8 @@ public class EnabledProfiles extends Metadata {
      * @param authenticationProfiles authentication profile URNs
      */
     public void setAuthenticationProfiles(Set<String> authenticationProfiles) {
-        this.authenticationProfiles = authenticationProfiles;
+        if (authenticationProfiles != null)
+            this.authenticationProfiles = authenticationProfiles;
     }
 
     /**
@@ -76,7 +77,8 @@ public class EnabledProfiles extends Metadata {
      * @param provisioningProfiles provisioning profile URNs
      */
     public void setProvisioningProfiles(Set<String> provisioningProfiles) {
-        this.provisioningProfiles = provisioningProfiles;
+        if (provisioningProfiles != null)
+           this.provisioningProfiles = provisioningProfiles;
     }
 
     /**
@@ -86,57 +88,62 @@ public class EnabledProfiles extends Metadata {
      */
     public Set<String> getAllProfiles() {
         Set<String> allProfiles = new HashSet<>();
-        allProfiles.addAll(authenticationProfiles);
-        allProfiles.addAll(provisioningProfiles);
+        if (authenticationProfiles != null) {
+            allProfiles.addAll(authenticationProfiles);
+        }
+        if (provisioningProfiles != null) {
+            allProfiles.addAll(provisioningProfiles);
+        }
         return allProfiles;
     }
 
     @Override
-    public JSONObject toJson() {
-        JSONObject.Builder builder = new JSONObject.Builder(JSONMember.ENABLED_PROFILES);
+    public JsonObject toJson() {
+        JsonObject.Builder builder = new JsonObject.Builder(JsonMember.ENABLED_PROFILES);
         builder.putAll(super.toJson());
-        builder.put(JSONMember.AUTHENTICATION_PROFILES, authenticationProfiles);
-        builder.put(JSONMember.PROVISIONING_PROFILES, provisioningProfiles);
+        builder.put(JsonMember.AUTHENTICATION_PROFILES, authenticationProfiles);
+        builder.put(JsonMember.PROVISIONING_PROFILES, provisioningProfiles);
         return builder.build();
     }
 
     @Override
-    public void hydrateFromJson(JSONObject json) {
+    public void hydrateFromJson(JsonObject json) {
         if (json == null) return;
-        json = json.unwrapObjectIfNeeded(JSONMember.ENABLED_PROFILES);
+        json = json.unwrapObjectIfNeeded(JsonMember.ENABLED_PROFILES);
         super.hydrateFromJson(json);
-        setAuthenticationProfiles( json.getStringSet(JSONMember.AUTHENTICATION_PROFILES));
-        setProvisioningProfiles( json.getStringSet(JSONMember.PROVISIONING_PROFILES));
+        setAuthenticationProfiles( json.getStringSet(JsonMember.AUTHENTICATION_PROFILES));
+        setProvisioningProfiles( json.getStringSet(JsonMember.PROVISIONING_PROFILES));
     }
 
     @Override
     public void validate(ErrorAccumulator errorAccumulator) {
-        validateRequiredStringCollection(errorAccumulator, JSONMember.AUTHENTICATION_PROFILES, authenticationProfiles);
-        validateRequiredStringCollection(errorAccumulator, JSONMember.PROVISIONING_PROFILES, provisioningProfiles);
+        validateOptionalStringCollection(errorAccumulator, JsonMember.AUTHENTICATION_PROFILES, authenticationProfiles);
+        validateOptionalStringCollection(errorAccumulator, JsonMember.PROVISIONING_PROFILES, provisioningProfiles);
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
         EnabledProfiles that = (EnabledProfiles) o;
-        return authenticationProfiles.equals(that.authenticationProfiles) &&
-                provisioningProfiles.equals(that.provisioningProfiles);
+        return Objects.equals(authenticationProfiles, that.authenticationProfiles) &&
+                Objects.equals(provisioningProfiles, that.provisioningProfiles);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(authenticationProfiles, provisioningProfiles);
+        return Objects.hash(super.hashCode(), authenticationProfiles, provisioningProfiles);
     }
 
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        builder.append(JSONMember.AUTHENTICATION_PROFILES.toString());
+        builder.append(JsonMember.AUTHENTICATION_PROFILES.toString());
         builder.append("=");
         builder.append(authenticationProfiles.toString());
         builder.append(", ");
-        builder.append(JSONMember.PROVISIONING_PROFILES);
+        builder.append(JsonMember.PROVISIONING_PROFILES);
         builder.append("=");
         builder.append(provisioningProfiles.toString());
         return builder.toString();

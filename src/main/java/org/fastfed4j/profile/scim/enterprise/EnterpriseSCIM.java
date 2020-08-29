@@ -20,16 +20,19 @@ public class EnterpriseSCIM extends Profile {
         public ApplicationProviderMetadataExtension(FastFedConfiguration configuration) {
             super(configuration);
         }
+        public ApplicationProviderMetadataExtension(ApplicationProviderMetadataExtension other) { super(other); }
     }
     public static class RegistrationRequestExtension extends org.fastfed4j.profile.scim.enterprise.RegistrationRequestExtension {
         public RegistrationRequestExtension(FastFedConfiguration configuration) {
             super(configuration);
         }
+        public RegistrationRequestExtension(RegistrationRequestExtension other) { super(other); }
     }
     public static class RegistrationResponseExtension extends org.fastfed4j.profile.scim.enterprise.RegistrationResponseExtension {
         public RegistrationResponseExtension(FastFedConfiguration configuration) {
             super(configuration);
         }
+        public RegistrationResponseExtension(RegistrationResponseExtension other) { super(other); }
     }
 
 

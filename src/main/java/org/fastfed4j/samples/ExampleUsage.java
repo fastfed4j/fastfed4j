@@ -3,11 +3,15 @@ package org.fastfed4j.samples;
 import org.fastfed4j.core.configuration.FastFedConfiguration;
 import org.fastfed4j.core.contract.Contract;
 import org.fastfed4j.core.contract.ContractChange;
+import org.fastfed4j.core.contract.ContractProposal;
+import org.fastfed4j.core.contract.ContractProposalStatus;
 import org.fastfed4j.core.exception.InvalidMetadataException;
 import org.fastfed4j.core.metadata.ApplicationProviderMetadata;
 import org.fastfed4j.core.metadata.IdentityProviderMetadata;
 import org.fastfed4j.profile.saml.enterprise.EnterpriseSAML;
 
+import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.HashSet;
 
 
@@ -144,6 +148,10 @@ public class ExampleUsage {
         System.out.println(idpMetadata.toJson().toString());
         System.out.println(appMetadata.toJson().toString());
         System.out.println(contract.toJson().toString());
+
+        ContractProposal proposal = new ContractProposal(contract, ContractProposalStatus.Pending, new Date());
+        System.out.println(proposal.toJson().toString());
+
     }
 
     public static String getInvalidJsonForAppMetadata() {

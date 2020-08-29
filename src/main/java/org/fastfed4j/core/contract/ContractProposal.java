@@ -1,9 +1,9 @@
 package org.fastfed4j.core.contract;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
-import org.fastfed4j.core.constants.JSONMember;
+import org.fastfed4j.core.constants.JsonMember;
 import org.fastfed4j.core.exception.ErrorAccumulator;
-import org.fastfed4j.core.json.JSONObject;
+import org.fastfed4j.core.json.JsonObject;
 import org.fastfed4j.core.metadata.Metadata;
 
 import java.util.Date;
@@ -36,6 +36,35 @@ public class ContractProposal extends Metadata {
         super(configuration);
     }
 
+    /**
+     * Constructs with all properties
+     * @param contract contract being proposed
+     * @param status status of the proposal
+     * @param expirationDate expirationDate of the proposal
+     */
+    public ContractProposal(Contract contract, ContractProposalStatus status, Date expirationDate) {
+        this(contract == null ? null : contract.getFastFedConfiguration());
+        Objects.requireNonNull(contract, "contract must not be null");
+        Objects.requireNonNull(status, "status must not be null");
+        Objects.requireNonNull(expirationDate, "expirationDate must not be null");
+        setContract(contract);
+        setStatus(status);
+        setExpirationDate(expirationDate);
+    }
+
+    /**
+     * Copy Constructor
+     * @param other object to copy
+     */
+    public ContractProposal(ContractProposal other) {
+        super(other);
+        if (other.contract != null )
+            this.contract = new Contract(other.contract);
+        if (other.expirationDate != null)
+            this.expirationDate = new Date(other.expirationDate.getTime());
+        this.status = other.status;
+    }
+
     public Contract getContract() {
         return contract;
     }
@@ -60,6 +89,16 @@ public class ContractProposal extends Metadata {
         this.status = status;
     }
 
+    @Override
+    public JsonObject toJson() {
+        JsonObject.Builder builder = new JsonObject.Builder(JsonMember.CONTRACT_PROPOSAL);
+        builder.putAll(super.toJson());
+        builder.putAll(contract.toJson());
+        builder.put(JsonMember.CONTRACT_PROPOSAL_STATUS, status.toString());
+        builder.put(JsonMember.CONTRACT_PROPOSAL_EXPIRATION, expirationDate);
+        return builder.build();
+    }
+
     /**
      * Constructs a Contract Proposal from a JSON-serialized representation.
      * @param configuration FastFed Configuration that controls the behavior of parsing and validation
@@ -75,37 +114,39 @@ public class ContractProposal extends Metadata {
     }
 
     @Override
-    public void hydrateFromJson(JSONObject json) {
+    public void hydrateFromJson(JsonObject json) {
         if (json == null) return;
-        json = json.unwrapObjectIfNeeded(JSONMember.CONTRACT_PROPOSAL);
+        json = json.unwrapObjectIfNeeded(JsonMember.CONTRACT_PROPOSAL);
         super.hydrateFromJson(json);
 
-        setExpirationDate( json.getDate(JSONMember.CONTRACT_PROPOSAL_EXPIRATION));
+        setExpirationDate( json.getDate(JsonMember.CONTRACT_PROPOSAL_EXPIRATION));
 
-        ContractProposalStatus status = null;
-        if (json.containsValueForMember(JSONMember.CONTRACT_PROPOSAL_STATUS)) {
+        String status = json.getString(JsonMember.CONTRACT_PROPOSAL_STATUS);
+        if (status != null) {
             try {
-                status = ContractProposalStatus.valueOf(json.getString(JSONMember.CONTRACT_PROPOSAL_STATUS));
+                setStatus( ContractProposalStatus.valueOf(status));
             }
             catch (IllegalArgumentException e) {
                 json.getErrorAccumulator().add(
-                        "Invalid value for '" + JSONMember.CONTRACT_PROPOSAL_STATUS
-                        + "' (received: '" + json.getString(JSONMember.CONTRACT_PROPOSAL_STATUS) + "')"
+                        "Invalid value for \"" + getFullyQualifiedName(JsonMember.CONTRACT_PROPOSAL_STATUS) +
+                        "\" (received: \"" + json.getString(JsonMember.CONTRACT_PROPOSAL_STATUS) + "\")"
                 );
             }
         }
-        setStatus(status);
 
-        Contract contract = new Contract(getFastFedConfiguration());
-        contract.hydrateFromJson( json.getObject(JSONMember.CONTRACT));
-        setContract(contract);
+        JsonObject contractJson = json.getObject(JsonMember.CONTRACT);
+        if (contractJson != null) {
+            Contract contract = new Contract(getFastFedConfiguration());
+            contract.hydrateFromJson(contractJson);
+            setContract(contract);
+        }
     }
 
     @Override
     public void validate(ErrorAccumulator errorAccumulator) {
-        validateRequiredObject(errorAccumulator, JSONMember.CONTRACT_PROPOSAL_EXPIRATION, expirationDate);
-        validateRequiredObject(errorAccumulator, JSONMember.CONTRACT_PROPOSAL_STATUS, status);
-        validateRequiredObject(errorAccumulator, JSONMember.CONTRACT, contract);
+        validateRequiredObject(errorAccumulator, JsonMember.CONTRACT_PROPOSAL_EXPIRATION, expirationDate);
+        validateRequiredObject(errorAccumulator, JsonMember.CONTRACT_PROPOSAL_STATUS, status);
+        validateRequiredObject(errorAccumulator, JsonMember.CONTRACT, contract);
         if (contract != null) { contract.validate(errorAccumulator); }
     }
 

@@ -3,10 +3,10 @@ package org.fastfed4j.core.metadata;
 import java.util.*;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
-import org.fastfed4j.core.constants.JSONMember;
+import org.fastfed4j.core.constants.JsonMember;
 import org.fastfed4j.core.constants.SchemaGrammar;
 import org.fastfed4j.core.exception.ErrorAccumulator;
-import org.fastfed4j.core.json.JSONObject;
+import org.fastfed4j.core.json.JsonObject;
 
 /**
  * Represents the Desired Attributes metadata, as defined in section 3.3.5 of the FastFed Core specification.
@@ -111,13 +111,23 @@ public class DesiredAttributes extends Metadata {
     public DesiredAttributes(DesiredAttributes other) {
         super(other);
         this.preferredSchemaGrammar = other.preferredSchemaGrammar;
-        for (Map.Entry<SchemaGrammar, ForSchemaGrammar> entry : other.desiredAttributes.entrySet()) {
-            desiredAttributes.put(entry.getKey(), new ForSchemaGrammar(entry.getValue()));
+        if (other.desiredAttributes != null) {
+            for (Map.Entry<SchemaGrammar, ForSchemaGrammar> entry : other.desiredAttributes.entrySet()) {
+                desiredAttributes.put(entry.getKey(), new ForSchemaGrammar(entry.getValue()));
+            }
         }
     }
 
     /**
-     * Get the desired attributes as represented in a particular schema grammar.
+     * Gets all the available schema grammars.
+     * @return collection of schema grammars
+     */
+    public Set<SchemaGrammar> getAllSchemaGrammars() {
+        return desiredAttributes.keySet();
+    }
+
+    /**
+     * Gets the desired attributes as represented in a particular schema grammar.
      * @return desired attributes as represented in the schema grammar
      */
     public ForSchemaGrammar forSchemaGrammar(SchemaGrammar schemaGrammar) {
@@ -161,25 +171,25 @@ public class DesiredAttributes extends Metadata {
     }
 
     @Override
-    public JSONObject toJson() {
-        JSONObject.Builder builder = new JSONObject.Builder(JSONMember.DESIRED_ATTRIBUTES);
+    public JsonObject toJson() {
+        JsonObject.Builder builder = new JsonObject.Builder(JsonMember.DESIRED_ATTRIBUTES);
         for (Map.Entry<SchemaGrammar, ForSchemaGrammar> entry : desiredAttributes.entrySet()) {
             String schemaGrammar = entry.getKey().getUrn();
             ForSchemaGrammar value = entry.getValue();
-            JSONObject.Builder builderForSchema = new JSONObject.Builder(schemaGrammar);
-            builderForSchema.put(JSONMember.REQUIRED_USER_ATTRIBUTES, value.getRequiredUserAttributes());
-            builderForSchema.put(JSONMember.OPTIONAL_USER_ATTRIBUTES, value.getOptionalUserAttributes());
-            builderForSchema.put(JSONMember.REQUIRED_GROUP_ATTRIBUTES, value.getRequiredGroupAttributes());
-            builderForSchema.put(JSONMember.OPTIONAL_GROUP_ATTRIBUTES, value.getOptionalGroupAttributes());
+            JsonObject.Builder builderForSchema = new JsonObject.Builder(schemaGrammar);
+            builderForSchema.put(JsonMember.REQUIRED_USER_ATTRIBUTES, value.getRequiredUserAttributes());
+            builderForSchema.put(JsonMember.OPTIONAL_USER_ATTRIBUTES, value.getOptionalUserAttributes());
+            builderForSchema.put(JsonMember.REQUIRED_GROUP_ATTRIBUTES, value.getRequiredGroupAttributes());
+            builderForSchema.put(JsonMember.OPTIONAL_GROUP_ATTRIBUTES, value.getOptionalGroupAttributes());
             builder.putAll(builderForSchema.build());
         }
         return builder.build();
     }
 
     @Override
-    public void hydrateFromJson(JSONObject json) {
+    public void hydrateFromJson(JsonObject json) {
         if (json == null) return;
-        json = json.unwrapObjectIfNeeded(JSONMember.DESIRED_ATTRIBUTES);
+        json = json.unwrapObjectIfNeeded(JsonMember.DESIRED_ATTRIBUTES);
         super.hydrateFromJson(json);
 
         if (json.keySet().isEmpty()) {
@@ -199,32 +209,30 @@ public class DesiredAttributes extends Metadata {
             }
 
             SchemaGrammar schemaGrammar = SchemaGrammar.fromString(schemaGrammarString);
-            JSONObject schemaJson = json.getObject(schemaGrammarString);
+            JsonObject schemaJson = json.getObject(schemaGrammarString);
 
             DesiredAttributes.ForSchemaGrammar forSchema = new DesiredAttributes.ForSchemaGrammar();
             forSchema.setSchemaGrammar(schemaGrammar);
-            forSchema.setRequiredUserAttributes( schemaJson.getStringList(JSONMember.REQUIRED_USER_ATTRIBUTES));
-            forSchema.setOptionalUserAttributes( schemaJson.getStringList(JSONMember.OPTIONAL_USER_ATTRIBUTES));
-            forSchema.setRequiredGroupAttributes( schemaJson.getStringList(JSONMember.REQUIRED_GROUP_ATTRIBUTES));
-            forSchema.setOptionalGroupAttributes( schemaJson.getStringList(JSONMember.OPTIONAL_GROUP_ATTRIBUTES));
+            forSchema.setRequiredUserAttributes( schemaJson.getStringList(JsonMember.REQUIRED_USER_ATTRIBUTES));
+            forSchema.setOptionalUserAttributes( schemaJson.getStringList(JsonMember.OPTIONAL_USER_ATTRIBUTES));
+            forSchema.setRequiredGroupAttributes( schemaJson.getStringList(JsonMember.REQUIRED_GROUP_ATTRIBUTES));
+            forSchema.setOptionalGroupAttributes( schemaJson.getStringList(JsonMember.OPTIONAL_GROUP_ATTRIBUTES));
             this.desiredAttributes.put(schemaGrammar, forSchema);
         }
-
-
     }
 
     @Override
     public void validate(ErrorAccumulator errorAccumulator) {
         if (desiredAttributes.size() == 0) {
-            errorAccumulator.add("Missing value for \"" + JSONMember.DESIRED_ATTRIBUTES + "\"");
+            errorAccumulator.add("Missing value for \"" + JsonMember.DESIRED_ATTRIBUTES + "\"");
         }
 
         for (SchemaGrammar schemaGrammar : desiredAttributes.keySet()) {
             DesiredAttributes.ForSchemaGrammar forSchema = forSchemaGrammar(schemaGrammar);
-            validateRequiredStringCollection(errorAccumulator, JSONMember.REQUIRED_USER_ATTRIBUTES, forSchema.requiredUserAttributes);
-            validateOptionalStringCollection(errorAccumulator, JSONMember.OPTIONAL_USER_ATTRIBUTES, forSchema.optionalUserAttributes);
-            validateOptionalStringCollection(errorAccumulator, JSONMember.REQUIRED_GROUP_ATTRIBUTES, forSchema.requiredGroupAttributes);
-            validateOptionalStringCollection(errorAccumulator, JSONMember.OPTIONAL_GROUP_ATTRIBUTES, forSchema.optionalGroupAttributes);
+            validateRequiredStringCollection(errorAccumulator, JsonMember.REQUIRED_USER_ATTRIBUTES, forSchema.requiredUserAttributes);
+            validateOptionalStringCollection(errorAccumulator, JsonMember.OPTIONAL_USER_ATTRIBUTES, forSchema.optionalUserAttributes);
+            validateOptionalStringCollection(errorAccumulator, JsonMember.REQUIRED_GROUP_ATTRIBUTES, forSchema.requiredGroupAttributes);
+            validateOptionalStringCollection(errorAccumulator, JsonMember.OPTIONAL_GROUP_ATTRIBUTES, forSchema.optionalGroupAttributes);
         }
     }
 
@@ -235,17 +243,17 @@ public class DesiredAttributes extends Metadata {
 
         StringBuilder builder = new StringBuilder();
         builder.append("Invalid member of \"");
-        builder.append(JSONMember.DESIRED_ATTRIBUTES);
-        builder.append("\". Unrecognized schema grammar (receivedValue=\"");
+        builder.append(getFullyQualifiedName(JsonMember.DESIRED_ATTRIBUTES));
+        builder.append("\". Unrecognized schema grammar: \"");
         builder.append(schemaGrammarString);
-        builder.append("\"). \"");
+        builder.append("\". ");
         List<SchemaGrammar> schemaGrammars = Arrays.asList(SchemaGrammar.values());
         if (schemaGrammars.size() == 1) {
-            builder.append("Expected \"");
+            builder.append("Expected: \"");
             builder.append(schemaGrammars.get(0).toString());
             builder.append("\"");
         } else {
-            builder.append("\". Expected one of ");
+            builder.append("Expected one of: ");
             for (int i = 0; i < schemaGrammars.size(); i++) {
                 builder.append("\"");
                 builder.append(schemaGrammars.get(i).toString());

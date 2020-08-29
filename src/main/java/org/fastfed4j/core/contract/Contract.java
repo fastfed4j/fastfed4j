@@ -1,15 +1,14 @@
 package org.fastfed4j.core.contract;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
-import org.fastfed4j.core.constants.JSONMember;
+import org.fastfed4j.core.constants.JsonMember;
 import org.fastfed4j.core.exception.ErrorAccumulator;
 import org.fastfed4j.core.exception.FastFedSecurityException;
 import org.fastfed4j.core.exception.IncompatibleProvidersException;
 import org.fastfed4j.core.exception.InvalidMetadataException;
-import org.fastfed4j.core.json.JSONObject;
+import org.fastfed4j.core.json.JsonObject;
 import org.fastfed4j.core.metadata.*;
 import org.fastfed4j.core.util.CompatibilityUtils;
-import org.fastfed4j.profile.ProfileRegistry;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -64,10 +63,14 @@ public class Contract extends Metadata {
      */
     public Contract(Contract other) {
         super(other);
-        this.identityProvider = new IdentityProvider(other.identityProvider);
-        this.applicationProvider = new ApplicationProvider(other.applicationProvider);
-        this.enabledProfiles = new EnabledProfiles(other.enabledProfiles);
-        this.signingAlgorithms = new HashSet<>(other.signingAlgorithms);
+        if (other.identityProvider != null)
+            this.identityProvider = new IdentityProvider(other.identityProvider);
+        if (other.applicationProvider != null)
+            this.applicationProvider = new ApplicationProvider(other.applicationProvider);
+        if (other.enabledProfiles != null)
+           this.enabledProfiles = new EnabledProfiles(other.enabledProfiles);
+        if (other.signingAlgorithms != null)
+            this.signingAlgorithms = new HashSet<>(other.signingAlgorithms);
     }
 
     /**
@@ -135,10 +138,10 @@ public class Contract extends Metadata {
     }
 
     /**
-     * Validates a Registration Request JWT which an Identity Provider sends to an Application Provider
+     * Validates a Registration Request Jwt which an Identity Provider sends to an Application Provider
      * during the FastFed Handshake. If valid, amends the contract based upon the contents of the message.
-     * @param jwt RegistrationRequest in JWT compact serialization format
-     * @throws InvalidMetadataException if JWT is invalid
+     * @param jwt RegistrationRequest in Jwt compact serialization format
+     * @throws InvalidMetadataException if Jwt is invalid
      * @throws FastFedSecurityException if contents of the RegistrationRequest violate the security assertions defined by the FastFed specification
      */
     public void validateAndOverlayRegistrationRequest(String jwt)
@@ -244,13 +247,13 @@ public class Contract extends Metadata {
     }
 
     @Override
-    public JSONObject toJson() {
-        JSONObject.Builder builder = new JSONObject.Builder(JSONMember.CONTRACT);
+    public JsonObject toJson() {
+        JsonObject.Builder builder = new JsonObject.Builder(JsonMember.CONTRACT);
         builder.putAll(super.toJson());
         builder.putAll(identityProvider.toJson());
         builder.putAll(applicationProvider.toJson());
         builder.putAll(enabledProfiles.toJson());
-        builder.put(JSONMember.SIGNING_ALGORITHMS, signingAlgorithms);
+        builder.put(JsonMember.SIGNING_ALGORITHMS, signingAlgorithms);
         return builder.build();
     }
 
@@ -269,33 +272,41 @@ public class Contract extends Metadata {
     }
 
     @Override
-    public void hydrateFromJson(JSONObject json) {
+    public void hydrateFromJson(JsonObject json) {
         if (json == null) return;
-        json = json.unwrapObjectIfNeeded(JSONMember.CONTRACT);
+        json = json.unwrapObjectIfNeeded(JsonMember.CONTRACT);
         super.hydrateFromJson(json);
+        setSigningAlgorithms( json.getStringSet(JsonMember.SIGNING_ALGORITHMS));
 
-        IdentityProvider identityProvider = new IdentityProvider(getFastFedConfiguration());
-        identityProvider.hydrateFromJson( json.getObject(JSONMember.IDENTITY_PROVIDER));
-        setIdentityProvider(identityProvider);
+        JsonObject identityProviderJson = json.getObject(JsonMember.IDENTITY_PROVIDER);
+        if (identityProviderJson != null) {
+            IdentityProvider identityProvider = new IdentityProvider(getFastFedConfiguration());
+            identityProvider.hydrateFromJson(identityProviderJson);
+            setIdentityProvider(identityProvider);
+        }
 
-        ApplicationProvider applicationProvider = new ApplicationProvider(getFastFedConfiguration());
-        applicationProvider.hydrateFromJson( json.getObject(JSONMember.APPLICATION_PROVIDER));
-        setApplicationProvider(applicationProvider);
+        JsonObject applicationProviderJson = json.getObject(JsonMember.APPLICATION_PROVIDER);
+        if (applicationProviderJson != null) {
+            ApplicationProvider applicationProvider = new ApplicationProvider(getFastFedConfiguration());
+            applicationProvider.hydrateFromJson(applicationProviderJson);
+            setApplicationProvider(applicationProvider);
+        }
 
-        EnabledProfiles enabledProfiles = new EnabledProfiles(getFastFedConfiguration());
-        enabledProfiles.hydrateFromJson( json.getObject(JSONMember.ENABLED_PROFILES));
-        setEnabledProfiles(enabledProfiles);
-
-        setSigningAlgorithms( json.getStringSet(JSONMember.SIGNING_ALGORITHMS));
+        JsonObject enabledProfilesJson = json.getObject(JsonMember.ENABLED_PROFILES);
+        if (enabledProfilesJson != null) {
+            EnabledProfiles enabledProfiles = new EnabledProfiles(getFastFedConfiguration());
+            enabledProfiles.hydrateFromJson(enabledProfilesJson);
+            setEnabledProfiles(enabledProfiles);
+        }
     }
 
     @Override
     public void validate(ErrorAccumulator errorAccumulator) {
         // Validate that required objects are defined
-        validateRequiredObject(errorAccumulator, JSONMember.IDENTITY_PROVIDER, identityProvider);
-        validateRequiredObject(errorAccumulator, JSONMember.APPLICATION_PROVIDER, applicationProvider);
-        validateRequiredObject(errorAccumulator, JSONMember.ENABLED_PROFILES, enabledProfiles);
-        validateRequiredStringCollection(errorAccumulator, JSONMember.SIGNING_ALGORITHMS, signingAlgorithms);
+        validateRequiredObject(errorAccumulator, JsonMember.IDENTITY_PROVIDER, identityProvider);
+        validateRequiredObject(errorAccumulator, JsonMember.APPLICATION_PROVIDER, applicationProvider);
+        validateRequiredObject(errorAccumulator, JsonMember.ENABLED_PROFILES, enabledProfiles);
+        validateRequiredStringCollection(errorAccumulator, JsonMember.SIGNING_ALGORITHMS, signingAlgorithms);
 
         // Validate the contents of each object
         if (identityProvider != null) {

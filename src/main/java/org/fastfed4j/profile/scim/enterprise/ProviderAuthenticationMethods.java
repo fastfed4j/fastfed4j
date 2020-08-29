@@ -1,12 +1,10 @@
 package org.fastfed4j.profile.scim.enterprise;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
-import org.fastfed4j.core.constants.AuthenticationProfile;
-import org.fastfed4j.core.constants.JSONMember;
+import org.fastfed4j.core.constants.JsonMember;
 import org.fastfed4j.core.constants.ProviderAuthenticationProtocol;
-import org.fastfed4j.core.constants.ProvisioningProfile;
 import org.fastfed4j.core.exception.ErrorAccumulator;
-import org.fastfed4j.core.json.JSONObject;
+import org.fastfed4j.core.json.JsonObject;
 import org.fastfed4j.core.metadata.Metadata;
 import org.fastfed4j.core.metadata.Oauth2JwtClientMetadata;
 import org.fastfed4j.core.metadata.ProviderAuthenticationMetadata;
@@ -21,7 +19,7 @@ import java.util.Set;
  * <p>The contents are a map where the key is the URN of the Provider Authentication Protocol and the value is a
  * Metadata structure containing the extended attributes required by the protocol.</p>
  *
- * <p>Currently, the implementation only supports the OAuth2 JWT protocol. It throws a runtime exception if any other
+ * <p>Currently, the implementation only supports the OAuth2 Jwt protocol. It throws a runtime exception if any other
  * unknown protocol is encountered. If additional protocols become adopted in the future, the implementation will need
  * to be updated to handle them.</p>
  */
@@ -80,7 +78,7 @@ public class ProviderAuthenticationMethods extends Metadata {
     }
 
     /**
-     * Convenience method to test if the OAuth JWT protocol is supported by the Identity Provider
+     * Convenience method to test if the OAuth Jwt protocol is supported by the Identity Provider
      * @return true if supported
      */
     public boolean supportsOauth2Jwt() {
@@ -88,8 +86,8 @@ public class ProviderAuthenticationMethods extends Metadata {
     }
 
     /**
-     * Convenience method to get the extended metadata for a client who supports the OAuth JWT protocol.
-     * @return OauthJwtClient, or null if the OAuth JWT protocol is not supported
+     * Convenience method to get the extended metadata for a client who supports the OAuth Jwt protocol.
+     * @return OauthJwtClient, or null if the OAuth Jwt protocol is not supported
      */
     public Oauth2JwtClientMetadata getOauth2JwtClient() {
         Oauth2JwtClientMetadata returnVal = null;
@@ -100,16 +98,16 @@ public class ProviderAuthenticationMethods extends Metadata {
     }
 
     @Override
-    public JSONObject toJson() {
-        JSONObject.Builder builder = new JSONObject.Builder(JSONMember.PROVIDER_AUTHENTICATION_METHODS);
+    public JsonObject toJson() {
+        JsonObject.Builder builder = new JsonObject.Builder(JsonMember.PROVIDER_AUTHENTICATION_METHODS);
         builder.putAll(super.toJson());
         return builder.build();
     }
 
     @Override
-    public void hydrateFromJson(JSONObject json) {
+    public void hydrateFromJson(JsonObject json) {
         if (json == null) return;
-        json = json.unwrapObjectIfNeeded(JSONMember.PROVIDER_AUTHENTICATION_METHODS);
+        json = json.unwrapObjectIfNeeded(JsonMember.PROVIDER_AUTHENTICATION_METHODS);
         super.hydrateFromJson(json);
 
         for (String protocolUrn : json.keySet()) {
@@ -132,5 +130,6 @@ public class ProviderAuthenticationMethods extends Metadata {
             extendedMetadata.validate(errorAccumulator);
         }
     }
+
 
 }

@@ -1,6 +1,7 @@
 package org.fastfed4j.core.json;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import org.fastfed4j.core.exception.ErrorAccumulator;
 
@@ -8,7 +9,8 @@ import org.fastfed4j.core.exception.ErrorAccumulator;
  * Abstracts an underlying JSON parser implementation behind a consistent interface. Also adds convenience utilities for
  * casting to particular data types and reporting errors when JSON contents do not conform to the expected types.
  */
-public class JSONObject {
+@SuppressWarnings("unchecked")
+public class JsonObject {
     public static final String JSON_PATH_DELIMITER = ".";
 
     private final org.json.simple.JSONObject impl;
@@ -16,16 +18,16 @@ public class JSONObject {
     private final String jsonPath;
 
     /**
-     * JSONObject is immutable. Builder pattern is used for construction.
+     * JsonObject is immutable. Builder pattern is used for construction.
      */
     public static class Builder {
-        private Optional<String> wrapperName;
-        private final JSONObject instance = new JSONObject( new ErrorAccumulator(), new org.json.simple.JSONObject());
+        private final Optional<String> wrapperName;
+        private final JsonObject instance = new JsonObject( new ErrorAccumulator(), new org.json.simple.JSONObject());
 
         // There isn't a deep clone method in JSON Simple. As a result, when built, this implementation simply returns
-        // the JSONObject used during construction. This opens the door to a risk that somebody builds a new JSONObject
+        // the JsonObject used during construction. This opens the door to a risk that somebody builds a new JsonObject
         // and then continues to invoke put() methods on the Builder that generated the object, causing the contents of
-        // the supposedly immutable JSONObject to mutate. To enforce a stronger promise of immutability, a flag is set
+        // the supposedly immutable JsonObject to mutate. To enforce a stronger promise of immutability, a flag is set
         // after building in order to block subsequent mutations.
         // It's a little hokey, but might be sufficient for now. To address this and other gaps, it may be appropriate
         // in the future to switch to a more feature-rich JSON parser.
@@ -41,11 +43,11 @@ public class JSONObject {
          * <p>Upon invoking the build() method, the JSON contents will be nested inside another object keyed by
          * by the wrapper name. For example, if the following attributes are set:</p>
          * <pre>
-         *     JSONObject.Builder builder = new JSONObject.Builder("Foo");
+         *     JsonObject.Builder builder = new JsonObject.Builder("Foo");
          *     builder.put("Attribute1", "Hello");
          *     builder.put("Attribute2", "World");
          * </pre>
-         * then an invocation of build() would produce a JSONObject with the following contents:
+         * then an invocation of build() would produce a JsonObject with the following contents:
          * <pre>
          *     {
          *         "Foo": {
@@ -60,7 +62,7 @@ public class JSONObject {
             this.wrapperName = Optional.of(wrapperName);
         }
 
-        public Builder put(String memberName, JSONObject value) {
+        public Builder put(String memberName, JsonObject value) {
             assertUnfinished();
             if (value == null) return this;
             instance.impl.put(memberName, value.impl);
@@ -90,26 +92,18 @@ public class JSONObject {
             return this;
         }
 
-        /*
-        public Builder put(String memberName, boolean value) {
-            assertUnfinished();
-            instance.impl.put(memberName, value);
-            return this;
-        }
-*/
-
-        public Builder putAll(JSONObject obj) {
+        public Builder putAll(JsonObject obj) {
             instance.impl.putAll(obj.impl);
             return this;
         }
 
         void assertUnfinished() {
             if (finished) {
-                throw new RuntimeException("Illegal invocation of JSONObject.Builder on an already built instance.");
+                throw new RuntimeException("Illegal invocation of JsonObject.Builder on an already built instance.");
             }
         }
 
-        public JSONObject build() {
+        public JsonObject build() {
             finished = true;
             if (wrapperName.isPresent()) {
                 return new Builder().put(wrapperName.get(), instance).build();
@@ -118,17 +112,46 @@ public class JSONObject {
         }
     }
 
-    protected JSONObject(ErrorAccumulator errorAccumulator, org.json.simple.JSONObject jsonObject) {
-        this(errorAccumulator, "", jsonObject);
+    protected JsonObject(ErrorAccumulator errorAccumulator, org.json.simple.JSONObject jsonObject) {
+        this(errorAccumulator, jsonObject, "");
     }
 
-    protected JSONObject(ErrorAccumulator errorAccumulator, String jsonPath, org.json.simple.JSONObject jsonObject) {
+    protected JsonObject(ErrorAccumulator errorAccumulator, org.json.simple.JSONObject jsonObject, String jsonPath) {
         Objects.requireNonNull(errorAccumulator, "errorAccumulator must not be null");
         Objects.requireNonNull(jsonPath, "jsonPath must not be null");
         Objects.requireNonNull(jsonObject, "jsonObject must not be null");
         this.errorAccumulator = errorAccumulator;
         this.jsonPath = jsonPath;
         this.impl = jsonObject;
+    }
+
+    /**
+     * Ensure that empty, null, and missing values are all treated equivalently by normalizing them into null
+     * and/or removing them from collections.
+     */
+    private Object normalize(Object value) {
+        if (value == null) {
+            return null;
+        }
+        else if (value instanceof String) {
+            String stringValue = ((String) value).trim();
+            if (stringValue.isEmpty()) {
+                return null;
+            } else {
+                return value;
+            }
+        }
+        else if (value instanceof org.json.simple.JSONArray) {
+            org.json.simple.JSONArray originalValue = (org.json.simple.JSONArray) value;
+            org.json.simple.JSONArray filteredValue = new org.json.simple.JSONArray();
+            for (Object o : originalValue) {
+                //Filter nulls from the collection
+                Object normalizedEntry = normalize(o);
+                if (normalizedEntry != null) filteredValue.add(normalizedEntry);
+            }
+            return filteredValue;
+        }
+        return value;
     }
 
     protected static String getDisplayableObjectType(Object obj) {
@@ -194,8 +217,8 @@ public class JSONObject {
         return impl.containsKey(key);
     }
 
-    public boolean containsValueForMember(String key) {
-        return (impl.get(key) != null);
+    public boolean containsValueForKey(String key) {
+        return (null != normalize(impl.get(key)));
     }
 
     public Set<String> keySet() {
@@ -203,7 +226,7 @@ public class JSONObject {
     }
 
     public String getString(String key) {
-        Object result = impl.get(key);
+        Object result = normalize(impl.get(key));
         if (null == result) {
             return null;
         }
@@ -211,11 +234,11 @@ public class JSONObject {
             errorAccumulator.add( createTypeMismatchErrorMsg(key, "String", getDisplayableObjectType(result)));
             return null;
         }
-        return ((String)result).trim();
+        return (String)result;
     }
 
     public Boolean getBoolean(String key) {
-        Object result = impl.get(key);
+        Object result = normalize(impl.get(key));
         if (null == result) {
             return null;
         }
@@ -226,8 +249,24 @@ public class JSONObject {
         return (Boolean)result;
     }
 
+    public Integer getInteger(String key) {
+        Object result = normalize(impl.get(key));
+        if (null == result) {
+            return null;
+        }
+        if (! (result instanceof Long)) {
+            errorAccumulator.add( createTypeMismatchErrorMsg(key, "Number", getDisplayableObjectType(result)));
+            return null;
+        }
+        if ((Long)result > Integer.MAX_VALUE || (Long)result < Integer.MIN_VALUE) {
+            errorAccumulator.add( "Invalid value for " + getFullyQualifiedName(key) + "(" + result + " out of bounds for an integer)");
+            return null;
+        }
+        return ((Long) result).intValue();
+    }
+
     public Long getLong(String key) {
-        Object result = impl.get(key);
+        Object result = normalize(impl.get(key));
         if (null == result) {
             return null;
         }
@@ -248,7 +287,7 @@ public class JSONObject {
     }
 
     public List<String> getStringList(String key) {
-        Object result = impl.get(key);
+        Object result = normalize(impl.get(key));
 
         if (null == result) {
             return null;
@@ -267,7 +306,7 @@ public class JSONObject {
                                 "Array containing " + getDisplayableObjectType(o) + "s"));
                 return null;
             }
-            response.add(((String)o).trim());
+            response.add((String)o);
         }
         return response;
     }
@@ -281,7 +320,7 @@ public class JSONObject {
         return returnVal;
     }
 
-    public JSONObject getObject(String key) {
+    public JsonObject getObject(String key) {
         Object result = impl.get(key);
         if (null == result) {
             return null;
@@ -291,7 +330,7 @@ public class JSONObject {
             return null;
         }
 
-        return new JSONObject( errorAccumulator, getFullyQualifiedName(key), (org.json.simple.JSONObject)result);
+        return new JsonObject( errorAccumulator, (org.json.simple.JSONObject)result, getFullyQualifiedName(key));
     }
 
     /**
@@ -314,9 +353,9 @@ public class JSONObject {
      *</pre>
      * <p>This utility normalizes the contents into the latter, unwrapped form.</p>
      * @param wrapperName the name of the JSON member to unwrap
-     * @return unwrapped JSONObject
+     * @return unwrapped JsonObject
      */
-    public JSONObject unwrapObjectIfNeeded(String wrapperName) {
+    public JsonObject unwrapObjectIfNeeded(String wrapperName) {
         if (onlyContainsKey(wrapperName)) {
             return getObject(wrapperName);
         }

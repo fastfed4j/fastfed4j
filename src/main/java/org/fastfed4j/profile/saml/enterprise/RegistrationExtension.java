@@ -2,10 +2,13 @@ package org.fastfed4j.profile.saml.enterprise;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
 import org.fastfed4j.core.constants.AuthenticationProfile;
-import org.fastfed4j.core.constants.JSONMember;
+import org.fastfed4j.core.constants.JsonMember;
 import org.fastfed4j.core.exception.ErrorAccumulator;
-import org.fastfed4j.core.json.JSONObject;
+import org.fastfed4j.core.json.JsonObject;
+import org.fastfed4j.core.metadata.DesiredAttributes;
 import org.fastfed4j.core.metadata.Metadata;
+
+import java.util.Objects;
 
 /**
  * Represents the extensions to the RegistrationRequest and RegistrationResponse messages, as defined by
@@ -19,6 +22,15 @@ class RegistrationExtension extends Metadata {
      */
     public RegistrationExtension(FastFedConfiguration configuration) {
         super(configuration);
+    }
+
+    /**
+     * Copy constructor
+     * @param other object to copy
+     */
+    public RegistrationExtension(RegistrationExtension other) {
+        super(other);
+        this.samlMetadataUri = other.samlMetadataUri;
     }
 
     /**
@@ -38,22 +50,36 @@ class RegistrationExtension extends Metadata {
     }
 
     @Override
-    public JSONObject toJson() {
-        JSONObject.Builder builder = new JSONObject.Builder(AuthenticationProfile.ENTERPRISE_SAML.getUrn());
+    public JsonObject toJson() {
+        JsonObject.Builder builder = new JsonObject.Builder(AuthenticationProfile.ENTERPRISE_SAML.getUrn());
         builder.putAll(super.toJson());
-        builder.put(JSONMember.SAML_METADATA_URI, samlMetadataUri);
+        builder.put(JsonMember.SAML_METADATA_URI, samlMetadataUri);
         return builder.build();
     }
 
     @Override
-    public void hydrateFromJson(JSONObject json) {
+    public void hydrateFromJson(JsonObject json) {
         if (json == null) return;
         super.hydrateFromJson(json);
-        setSamlMetadataUri(json.getString(JSONMember.SAML_METADATA_URI));
+        setSamlMetadataUri(json.getString(JsonMember.SAML_METADATA_URI));
     }
 
     @Override
     public void validate(ErrorAccumulator errorAccumulator) {
-        validateRequiredUrl(errorAccumulator, JSONMember.SAML_METADATA_URI, getSamlMetadataUri());
+        validateRequiredUrl(errorAccumulator, JsonMember.SAML_METADATA_URI, getSamlMetadataUri());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        RegistrationExtension that = (RegistrationExtension) o;
+        return Objects.equals(samlMetadataUri, that.samlMetadataUri);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), samlMetadataUri);
     }
 }

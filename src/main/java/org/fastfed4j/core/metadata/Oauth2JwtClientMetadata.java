@@ -1,15 +1,15 @@
 package org.fastfed4j.core.metadata;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
-import org.fastfed4j.core.constants.JSONMember;
+import org.fastfed4j.core.constants.JsonMember;
 import org.fastfed4j.core.constants.ProviderAuthenticationProtocol;
 import org.fastfed4j.core.exception.ErrorAccumulator;
-import org.fastfed4j.core.json.JSONObject;
+import org.fastfed4j.core.json.JsonObject;
 
 import java.util.Objects;
 
 /**
- * Represents the extended metadata required for a client using the OAuth2 JWT Authentication Protocol,
+ * Represents the extended metadata required for a client using the OAuth2 Jwt Authentication Protocol,
  * as defined in section 3.2.1.1 of the FastFed Enterprise SCIM specification.
  */
 public class Oauth2JwtClientMetadata extends ProviderAuthenticationMetadata {
@@ -46,23 +46,23 @@ public class Oauth2JwtClientMetadata extends ProviderAuthenticationMetadata {
     }
 
     @Override
-    public JSONObject toJson() {
-        JSONObject.Builder builder = new JSONObject.Builder(ProviderAuthenticationProtocol.OAUTH2_JWT.toString());
+    public JsonObject toJson() {
+        JsonObject.Builder builder = new JsonObject.Builder(ProviderAuthenticationProtocol.OAUTH2_JWT.toString());
         builder.putAll(super.toJson());
-        builder.put(JSONMember.JWKS_URI, jwksUri);
+        builder.put(JsonMember.JWKS_URI, jwksUri);
         return builder.build();
     }
 
     @Override
-    public void hydrateFromJson(JSONObject json) {
+    public void hydrateFromJson(JsonObject json) {
         if (json == null) return;
         super.hydrateFromJson(json);
-        setJwksUri( json.getString(JSONMember.JWKS_URI));
+        setJwksUri( json.getString(JsonMember.JWKS_URI));
     }
 
     @Override
     public void validate(ErrorAccumulator errorAccumulator) {
-        validateRequiredUrl(errorAccumulator, JSONMember.JWKS_URI, jwksUri);
+        validateRequiredUrl(errorAccumulator, JsonMember.JWKS_URI, jwksUri);
     }
 
     @Override

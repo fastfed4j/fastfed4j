@@ -3,7 +3,7 @@ package org.fastfed4j.core.constants;
 /**
  * JSON member names
  */
-public class JSONMember {
+public class JsonMember {
     public static final String APPLICATION_PROVIDER = "application_provider";
     public static final String APPLICATION_PROVIDER_METADATA_EXTENSIONS = "application_provider_metadata_extensions";
     public static final String AUTHENTICATION_PROFILES = "authentication_profiles";

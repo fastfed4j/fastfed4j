@@ -1,11 +1,9 @@
 package org.fastfed4j.core.metadata;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
-import org.fastfed4j.core.constants.JSONMember;
+import org.fastfed4j.core.constants.JsonMember;
 import org.fastfed4j.core.exception.ErrorAccumulator;
-import org.fastfed4j.core.json.JSONObject;
-import org.fastfed4j.profile.Profile;
-import org.fastfed4j.profile.ProfileRegistry;
+import org.fastfed4j.core.json.JsonObject;
 
 import java.util.*;
 
@@ -34,9 +32,12 @@ abstract public class CommonProviderMetadata extends Metadata {
         super(other);
         this.entityId = other.entityId;
         this.providerDomain = other.providerDomain;
-        this.providerContactInformation = new ProviderContactInformation(other.providerContactInformation);
-        this.displaySettings = new DisplaySettings(other.displaySettings);
-        this.capabilities = new Capabilities(other.capabilities);
+        if (other.providerContactInformation != null)
+            this.providerContactInformation = new ProviderContactInformation(other.providerContactInformation);
+        if (other.displaySettings != null)
+            this.displaySettings = new DisplaySettings(other.displaySettings);
+        if (other.capabilities != null)
+            this.capabilities = new Capabilities(other.capabilities);
     }
 
     public String getEntityId() {
@@ -82,46 +83,58 @@ abstract public class CommonProviderMetadata extends Metadata {
     }
 
     @Override
-    public JSONObject toJson() {
-        JSONObject.Builder builder = new JSONObject.Builder();
+    public JsonObject toJson() {
+        JsonObject.Builder builder = new JsonObject.Builder();
         builder.putAll(super.toJson());
-        builder.putAll(capabilities.toJson());
-        builder.putAll(displaySettings.toJson());
-        builder.putAll(providerContactInformation.toJson());
-        builder.put(JSONMember.ENTITY_ID, entityId);
-        builder.put(JSONMember.PROVIDER_DOMAIN, providerDomain);
+        builder.put(JsonMember.ENTITY_ID, entityId);
+        builder.put(JsonMember.PROVIDER_DOMAIN, providerDomain);
+        if (capabilities != null)
+            builder.putAll(capabilities.toJson());
+        if (displaySettings != null)
+            builder.putAll(displaySettings.toJson());
+        if (providerContactInformation != null)
+            builder.putAll(providerContactInformation.toJson());
+
         return builder.build();
     }
 
     @Override
-    public void hydrateFromJson(JSONObject jsonObj) {
+    public void hydrateFromJson(JsonObject jsonObj) {
         if (jsonObj == null) return;
         super.hydrateFromJson(jsonObj);
+        this.setEntityId(jsonObj.getString(JsonMember.ENTITY_ID));
+        this.setProviderDomain(jsonObj.getString(JsonMember.PROVIDER_DOMAIN));
 
-        this.setEntityId(jsonObj.getString(JSONMember.ENTITY_ID));
-        this.setProviderDomain(jsonObj.getString(JSONMember.PROVIDER_DOMAIN));
+        JsonObject providerContactInformationJson = jsonObj.getObject(JsonMember.PROVIDER_CONTACT_INFORMATION);
+        if (providerContactInformationJson != null) {
+            ProviderContactInformation providerContactInformation = new ProviderContactInformation(getFastFedConfiguration());
+            providerContactInformation.hydrateFromJson(providerContactInformationJson);
+            setProviderContactInformation(providerContactInformation);
+        }
 
-        ProviderContactInformation providerContactInformation = new ProviderContactInformation(getFastFedConfiguration());
-        providerContactInformation.hydrateFromJson(jsonObj.getObject(JSONMember.PROVIDER_CONTACT_INFORMATION));
-        this.setProviderContactInformation(providerContactInformation);
+        JsonObject displaySettingsJson = jsonObj.getObject(JsonMember.DISPLAY_SETTINGS);
+        if (displaySettingsJson != null) {
+            DisplaySettings displaySettings = new DisplaySettings(getFastFedConfiguration());
+            displaySettings.hydrateFromJson(displaySettingsJson);
+            setDisplaySettings(displaySettings);
+        }
 
-        DisplaySettings displaySettings = new DisplaySettings(getFastFedConfiguration());
-        displaySettings.hydrateFromJson(jsonObj.getObject(JSONMember.DISPLAY_SETTINGS));
-        this.setDisplaySettings(displaySettings);
-
-        Capabilities capabilities = new Capabilities(getFastFedConfiguration());
-        capabilities.hydrateFromJson(jsonObj.getObject(JSONMember.CAPABILITIES));
-        this.setCapabilities(capabilities);
+        JsonObject capabilitiesJson = jsonObj.getObject(JsonMember.CAPABILITIES);
+        if (capabilitiesJson != null) {
+            Capabilities capabilities = new Capabilities(getFastFedConfiguration());
+            capabilities.hydrateFromJson(capabilitiesJson);
+            setCapabilities(capabilities);
+        }
     }
 
     @Override
     public void validate(ErrorAccumulator errorAccumulator) {
         // Ensure required members are non-null
-        validateRequiredString(errorAccumulator, JSONMember.ENTITY_ID, entityId);
-        validateRequiredString(errorAccumulator, JSONMember.PROVIDER_DOMAIN, providerDomain);
-        validateRequiredObject(errorAccumulator, JSONMember.PROVIDER_CONTACT_INFORMATION, providerContactInformation);
-        validateRequiredObject(errorAccumulator, JSONMember.DISPLAY_SETTINGS, displaySettings);
-        validateRequiredObject(errorAccumulator, JSONMember.CAPABILITIES, capabilities);
+        validateRequiredString(errorAccumulator, JsonMember.ENTITY_ID, entityId);
+        validateRequiredString(errorAccumulator, JsonMember.PROVIDER_DOMAIN, providerDomain);
+        validateRequiredObject(errorAccumulator, JsonMember.PROVIDER_CONTACT_INFORMATION, providerContactInformation);
+        validateRequiredObject(errorAccumulator, JsonMember.DISPLAY_SETTINGS, displaySettings);
+        validateRequiredObject(errorAccumulator, JsonMember.CAPABILITIES, capabilities);
 
         // Validate the contents of each object
         if (providerContactInformation != null) { providerContactInformation.validate(errorAccumulator); }

@@ -6,16 +6,16 @@ import org.fastfed4j.core.exception.InvalidMetadataException;
 /**
  * Utility to parse a JSON document
  */
-public class JSONParser {
+public class JsonParser {
 
     /**
      * Parse a JSON string into a JSON object
      * @param jsonString JSON string
      * @param errorAccumulator Error accumulator
-     * @return JSONObject
+     * @return JsonObject
      * @throws InvalidMetadataException if JSON is malformed
      */
-    public static JSONObject parse(String jsonString, ErrorAccumulator errorAccumulator)
+    public static JsonObject parse(String jsonString, ErrorAccumulator errorAccumulator)
         throws InvalidMetadataException
     {
         if (null == jsonString || jsonString.isEmpty()) {
@@ -27,16 +27,16 @@ public class JSONParser {
         try {
             obj = (new org.json.simple.parser.JSONParser()).parse(jsonString);
         } catch (Exception e) {
-            errorAccumulator.add("Malformed JSON: " + e);
+            errorAccumulator.add("Malformed JSON: " + e + "\n" + jsonString);
             throw new InvalidMetadataException(errorAccumulator);
         }
 
         if (!(obj instanceof org.json.simple.JSONObject)) {
-            errorAccumulator.add("Malformed JSON. Expected an Object, received a " + JSONObject.getDisplayableObjectType(obj));
+            errorAccumulator.add("Malformed JSON. Expected an Object, received a " + JsonObject.getDisplayableObjectType(obj));
             throw new InvalidMetadataException(errorAccumulator);
         }
 
-        return new JSONObject(errorAccumulator, (org.json.simple.JSONObject)obj);
+        return new JsonObject(errorAccumulator, (org.json.simple.JSONObject)obj);
     }
 
 }

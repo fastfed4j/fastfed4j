@@ -2,15 +2,14 @@ package org.fastfed4j.core.metadata;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
 import org.fastfed4j.core.constants.AuthenticationProfile;
-import org.fastfed4j.core.constants.JSONMember;
+import org.fastfed4j.core.constants.JsonMember;
 import org.fastfed4j.core.constants.ProvisioningProfile;
 import org.fastfed4j.core.contract.EnabledProfiles;
 import org.fastfed4j.core.exception.ErrorAccumulator;
 import org.fastfed4j.core.exception.InvalidMetadataException;
-import org.fastfed4j.core.json.JSONObject;
+import org.fastfed4j.core.json.JsonObject;
 import org.fastfed4j.profile.saml.enterprise.EnterpriseSAML;
 import org.fastfed4j.profile.Profile;
-import org.fastfed4j.profile.ProfileRegistry;
 import org.fastfed4j.profile.scim.enterprise.EnterpriseSCIM;
 
 import java.util.Objects;
@@ -34,6 +33,14 @@ public class RegistrationResponse extends Metadata {
     public RegistrationResponse(FastFedConfiguration configuration, EnabledProfiles enabledProfiles) {
         super(configuration);
         this.enabledProfiles = enabledProfiles;
+    }
+
+    /**
+     * Copy constructor
+     */
+    public RegistrationResponse(RegistrationResponse other) {
+        super(other);
+        this.handshakeFinalizeUri = other.handshakeFinalizeUri;
     }
 
     /**
@@ -68,10 +75,13 @@ public class RegistrationResponse extends Metadata {
     }
 
     @Override
-    public JSONObject toJson() {
-        JSONObject.Builder builder = new JSONObject.Builder();
+    public JsonObject toJson() {
+        JsonObject.Builder builder = new JsonObject.Builder();
         builder.putAll(super.toJson());
-        builder.put(JSONMember.FASTFED_HANDSHAKE_FINALIZE_URI, handshakeFinalizeUri);
+        builder.put(JsonMember.FASTFED_HANDSHAKE_FINALIZE_URI, handshakeFinalizeUri);
+        for (Metadata obj : getAllMetadataExtensions().values()) {
+            builder.putAll(obj.toJson());
+        }
         return builder.build();
     }
 
@@ -98,17 +108,31 @@ public class RegistrationResponse extends Metadata {
     }
 
     @Override
-    public void hydrateFromJson(JSONObject json) {
+    public void hydrateFromJson(JsonObject json) {
         if (json == null) return;
         super.hydrateFromJson(json);
         hydrateExtensions(json, Profile.ExtensionType.RegistrationResponse);
-        setHandshakeFinalizeUri( json.getString(JSONMember.FASTFED_HANDSHAKE_FINALIZE_URI));
+        setHandshakeFinalizeUri( json.getString(JsonMember.FASTFED_HANDSHAKE_FINALIZE_URI));
     }
 
     @Override
     public void validate(ErrorAccumulator errorAccumulator) {
         validateExtensions(errorAccumulator, enabledProfiles.getAllProfiles(), Profile.ExtensionType.RegistrationResponse);
-        validateOptionalUrl(errorAccumulator, JSONMember.SCHEMA_GRAMMAR, handshakeFinalizeUri);
+        validateOptionalUrl(errorAccumulator, JsonMember.SCHEMA_GRAMMAR, handshakeFinalizeUri);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        RegistrationResponse that = (RegistrationResponse) o;
+        return Objects.equals(handshakeFinalizeUri, that.handshakeFinalizeUri);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), handshakeFinalizeUri);
     }
 
 }

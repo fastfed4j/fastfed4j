@@ -1,9 +1,9 @@
 package org.fastfed4j.core.metadata;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
-import org.fastfed4j.core.constants.JSONMember;
+import org.fastfed4j.core.constants.JsonMember;
 import org.fastfed4j.core.exception.ErrorAccumulator;
-import org.fastfed4j.core.json.JSONObject;
+import org.fastfed4j.core.json.JsonObject;
 import org.fastfed4j.profile.ProfileRegistry;
 
 import java.util.HashSet;
@@ -32,10 +32,14 @@ public class Capabilities extends Metadata {
      */
     public Capabilities(Capabilities other) {
         super(other);
-        this.authenticationProfiles = new HashSet<>(other.authenticationProfiles);
-        this.provisioningProfiles = new HashSet<>(other.provisioningProfiles);
-        this.schemaGrammars = new HashSet<>(other.schemaGrammars);
-        this.signingAlgorithms = new HashSet<>(other.signingAlgorithms);
+        if (other.authenticationProfiles != null)
+            this.authenticationProfiles = new HashSet<>(other.authenticationProfiles);
+        if (other.provisioningProfiles != null)
+            this.provisioningProfiles = new HashSet<>(other.provisioningProfiles);
+        if (other.schemaGrammars != null)
+            this.schemaGrammars = new HashSet<>(other.schemaGrammars);
+        if (other.signingAlgorithms != null)
+            this.signingAlgorithms = new HashSet<>(other.signingAlgorithms);
     }
 
     public Set<String> getAuthenticationProfiles() {
@@ -107,33 +111,33 @@ public class Capabilities extends Metadata {
     }
 
     @Override
-    public JSONObject toJson() {
-        JSONObject.Builder builder = new JSONObject.Builder(JSONMember.CAPABILITIES);
+    public JsonObject toJson() {
+        JsonObject.Builder builder = new JsonObject.Builder(JsonMember.CAPABILITIES);
         builder.putAll(super.toJson());
-        builder.put(JSONMember.AUTHENTICATION_PROFILES, authenticationProfiles);
-        builder.put(JSONMember.PROVISIONING_PROFILES, provisioningProfiles);
-        builder.put(JSONMember.SCHEMA_GRAMMARS, schemaGrammars);
-        builder.put(JSONMember.SIGNING_ALGORITHMS, signingAlgorithms);
+        builder.put(JsonMember.AUTHENTICATION_PROFILES, authenticationProfiles);
+        builder.put(JsonMember.PROVISIONING_PROFILES, provisioningProfiles);
+        builder.put(JsonMember.SCHEMA_GRAMMARS, schemaGrammars);
+        builder.put(JsonMember.SIGNING_ALGORITHMS, signingAlgorithms);
         return builder.build();
     }
 
     @Override
-    public void hydrateFromJson(JSONObject json) {
+    public void hydrateFromJson(JsonObject json) {
         if (json == null) return;
-        json = json.unwrapObjectIfNeeded(JSONMember.CAPABILITIES);
+        json = json.unwrapObjectIfNeeded(JsonMember.CAPABILITIES);
         super.hydrateFromJson(json);
-        setAuthenticationProfiles( json.getStringSet(JSONMember.AUTHENTICATION_PROFILES));
-        setProvisioningProfiles( json.getStringSet(JSONMember.PROVISIONING_PROFILES));
-        setSchemaGrammars( json.getStringSet(JSONMember.SCHEMA_GRAMMARS));
-        setSigningAlgorithms( json.getStringSet(JSONMember.SIGNING_ALGORITHMS));
+        setAuthenticationProfiles( json.getStringSet(JsonMember.AUTHENTICATION_PROFILES));
+        setProvisioningProfiles( json.getStringSet(JsonMember.PROVISIONING_PROFILES));
+        setSchemaGrammars( json.getStringSet(JsonMember.SCHEMA_GRAMMARS));
+        setSigningAlgorithms( json.getStringSet(JsonMember.SIGNING_ALGORITHMS));
     }
 
     @Override
     public void validate(ErrorAccumulator errorAccumulator) {
-        validateOptionalStringCollection(errorAccumulator, JSONMember.AUTHENTICATION_PROFILES, authenticationProfiles);
-        validateOptionalStringCollection(errorAccumulator, JSONMember.PROVISIONING_PROFILES, provisioningProfiles);
-        validateOptionalStringCollection(errorAccumulator, JSONMember.SCHEMA_GRAMMARS, schemaGrammars);
-        validateOptionalStringCollection(errorAccumulator, JSONMember.SIGNING_ALGORITHMS, signingAlgorithms);
+        validateOptionalStringCollection(errorAccumulator, JsonMember.AUTHENTICATION_PROFILES, authenticationProfiles);
+        validateOptionalStringCollection(errorAccumulator, JsonMember.PROVISIONING_PROFILES, provisioningProfiles);
+        validateOptionalStringCollection(errorAccumulator, JsonMember.SCHEMA_GRAMMARS, schemaGrammars);
+        validateOptionalStringCollection(errorAccumulator, JsonMember.SIGNING_ALGORITHMS, signingAlgorithms);
     }
 
     @Override

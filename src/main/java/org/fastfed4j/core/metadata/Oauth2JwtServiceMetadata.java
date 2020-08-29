@@ -1,15 +1,15 @@
 package org.fastfed4j.core.metadata;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
-import org.fastfed4j.core.constants.JSONMember;
+import org.fastfed4j.core.constants.JsonMember;
 import org.fastfed4j.core.constants.ProviderAuthenticationProtocol;
 import org.fastfed4j.core.exception.ErrorAccumulator;
-import org.fastfed4j.core.json.JSONObject;
+import org.fastfed4j.core.json.JsonObject;
 
 import java.util.Objects;
 
 /**
- * Represents the extended metadata required for a service using the OAuth2 JWT Authentication Protocol,
+ * Represents the extended metadata required for a service using the OAuth2 Jwt Authentication Protocol,
  * as defined in section 3.2.2.1 of the FastFed Enterprise SCIM specification.
  */
 public class Oauth2JwtServiceMetadata extends ProviderAuthenticationMetadata {
@@ -56,26 +56,26 @@ public class Oauth2JwtServiceMetadata extends ProviderAuthenticationMetadata {
     }
 
     @Override
-    public JSONObject toJson() {
-        JSONObject.Builder builder = new JSONObject.Builder(ProviderAuthenticationProtocol.OAUTH2_JWT.toString());
+    public JsonObject toJson() {
+        JsonObject.Builder builder = new JsonObject.Builder(ProviderAuthenticationProtocol.OAUTH2_JWT.toString());
         builder.putAll(super.toJson());
-        builder.put(JSONMember.OAUTH2_TOKEN_ENDPOINT, oauthTokenEndpoint);
-        builder.put(JSONMember.OAUTH2_SCOPE, oauthScope);
+        builder.put(JsonMember.OAUTH2_TOKEN_ENDPOINT, oauthTokenEndpoint);
+        builder.put(JsonMember.OAUTH2_SCOPE, oauthScope);
         return builder.build();
     }
 
     @Override
-    public void hydrateFromJson(JSONObject json) {
+    public void hydrateFromJson(JsonObject json) {
         if (json == null) return;
         super.hydrateFromJson(json);
-        setOauthTokenEndpoint( json.getString(JSONMember.OAUTH2_TOKEN_ENDPOINT));
-        setOauthScope( json.getString(JSONMember.OAUTH2_SCOPE));
+        setOauthTokenEndpoint( json.getString(JsonMember.OAUTH2_TOKEN_ENDPOINT));
+        setOauthScope( json.getString(JsonMember.OAUTH2_SCOPE));
     }
 
     @Override
     public void validate(ErrorAccumulator errorAccumulator) {
-        validateRequiredUrl(errorAccumulator, JSONMember.OAUTH2_TOKEN_ENDPOINT, oauthTokenEndpoint);
-        validateRequiredString(errorAccumulator, JSONMember.OAUTH2_SCOPE, oauthScope);
+        validateRequiredUrl(errorAccumulator, JsonMember.OAUTH2_TOKEN_ENDPOINT, oauthTokenEndpoint);
+        validateRequiredString(errorAccumulator, JsonMember.OAUTH2_SCOPE, oauthScope);
     }
 
     @Override

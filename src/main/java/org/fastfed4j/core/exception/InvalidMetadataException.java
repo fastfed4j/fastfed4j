@@ -7,9 +7,14 @@ import java.util.Objects;
  */
 public class InvalidMetadataException extends IllegalArgumentException {
     private ErrorAccumulator errorAccumulator;
+    private String json;
 
     public InvalidMetadataException(ErrorAccumulator errorAccumulator) {
-        super("Metadata is malformed or non-compliant:\n" + errorAccumulator.toString());
+        this(errorAccumulator, null);
+    }
+
+    public InvalidMetadataException(ErrorAccumulator errorAccumulator, String json) {
+        super("Metadata is malformed or non-compliant.\n" + errorAccumulator.toString() + (json == null ? "" : "\n" + json));
         this.errorAccumulator = Objects.requireNonNull(errorAccumulator, "ErrorAccumulator must not be null");
     }
 

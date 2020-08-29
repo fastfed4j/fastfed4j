@@ -15,41 +15,41 @@ public class FastFedConfiguration {
     /**
      * Default ProfileRegistry
      */
-    // If this is changed, also update the public javadocs below.
+    // Implementors Note: If this is changed, also update the public javadocs below.
     private static final ProfileRegistry DEFAULT_PROFILE_REGISTRY = KnownProfiles.ALL;
 
     /**
      * Default value of schema grammar to prefer when accessing Desire Attributes metadata.
      */
-    // If this is changed, also update the public javadocs below.
+    // Implementors Note: If this is changed, also update the public javadocs below.
     private static final SchemaGrammar DEFAULT_SCHEMA_GRAMMAR = SchemaGrammar.SCIM;
 
     /**
      * Indicates whether nested groups are supported for SCIM provisioning.
      * Default=false, as per section 3.1.2 of FastFed Enterprise SCIM Profile.
      */
-    // If this is changed, also update the public javadocs below.
+    // Implementors Note: If this is changed, also update the public javadocs below.
     public static final boolean SCIM_DEFAULT_VALUE_OF_NESTED_GROUP_SUPPORT = false;
 
      /**
      * Upper limit for the maximum allowed group membership changes in a single SCIM request.
      * Value=1000, as per section 3.1.2 of FastFed Enterprise SCIM Profile.
      */
-     // If this is changed, also update the public javadocs below.
+     // Implementors Note: If this is changed, also update the public javadocs below.
     public static final int SCIM_UPPER_LIMIT_OF_MAX_ALLOWED_GROUP_MEMBERSHIP_CHANGES = 1000;
 
     /**
      * Lower limit for the maximum allowed group membership changes in a single SCIM request.
      * Value=100, as per section 3.1.2 of FastFed Enterprise SCIM Profile.
      */
-    // If this is changed, also update the public javadocs below.
+    // Implementors Note: If this is changed, also update the public javadocs below.
     public static final int SCIM_LOWER_LIMIT_OF_MAX_ALLOWED_GROUP_MEMBERSHIP_CHANGES = 100;
 
     /**
      * Default value for the maximum allowed group membership changes in a single SCIM request.
      * Value=100, as per section 3.1.2 of FastFed Enterprise SCIM Profile.
      */
-    // If this is changed, also update the public javadocs below.
+    // Implementors Note: If this is changed, also update the public javadocs below.
     public static final int SCIM_DEFAULT_VALUE_OF_MAX_GROUP_MEMBERSHIP_CHANGES = 100;
 
     private final ProfileRegistry profileRegistry;

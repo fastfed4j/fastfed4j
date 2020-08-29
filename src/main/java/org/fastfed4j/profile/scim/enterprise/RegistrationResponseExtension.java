@@ -1,15 +1,17 @@
 package org.fastfed4j.profile.scim.enterprise;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
-import org.fastfed4j.core.constants.AuthenticationProfile;
-import org.fastfed4j.core.constants.JSONMember;
+import org.fastfed4j.core.constants.JsonMember;
 import org.fastfed4j.core.constants.ProviderAuthenticationProtocol;
 import org.fastfed4j.core.constants.ProvisioningProfile;
 import org.fastfed4j.core.exception.ErrorAccumulator;
-import org.fastfed4j.core.json.JSONObject;
+import org.fastfed4j.core.json.JsonObject;
 import org.fastfed4j.core.metadata.Metadata;
 import org.fastfed4j.core.metadata.Oauth2JwtServiceMetadata;
 import org.fastfed4j.core.metadata.ProviderAuthenticationMetadata;
+import org.fastfed4j.core.util.ReflectionUtils;
+
+import java.util.Objects;
 
 /**
  * Represents the extensions to the Registration Response messages defined by
@@ -25,6 +27,21 @@ public class RegistrationResponseExtension extends Metadata {
      */
     public RegistrationResponseExtension(FastFedConfiguration configuration) {
         super(configuration);
+    }
+
+    /**
+     * Copy constructor
+     * @param other object to copy
+     */
+    public RegistrationResponseExtension(RegistrationResponseExtension other) {
+        super(other);
+        this.scimServiceUri = other.scimServiceUri;
+        this.providerAuthenticationProtocolUrn = other.providerAuthenticationProtocolUrn;
+        if (other.providerAuthenticationMetadata != null) {
+            // ProviderAuthenticationMetadata is an abstract base class, so reflection is used to create
+            // a copy of whatever concrete implementation is in use.
+            this.providerAuthenticationMetadata = (ProviderAuthenticationMetadata) ReflectionUtils.copy(other.providerAuthenticationMetadata);
+        }
     }
 
     /**
@@ -74,43 +91,46 @@ public class RegistrationResponseExtension extends Metadata {
     }
 
     @Override
-    public JSONObject toJson() {
-        JSONObject.Builder builder = new JSONObject.Builder(ProvisioningProfile.ENTERPRISE_SCIM.getUrn());
+    public JsonObject toJson() {
+        JsonObject.Builder builder = new JsonObject.Builder(ProvisioningProfile.ENTERPRISE_SCIM.getUrn());
         builder.putAll(super.toJson());
-        builder.putAll(providerAuthenticationMetadata.toJson());
-        builder.put(JSONMember.SCIM_SERVICE_URI, scimServiceUri);
-        builder.put(JSONMember.PROVIDER_AUTHENTICATION_METHOD, providerAuthenticationProtocolUrn.getUrn());
+        builder.put(JsonMember.SCIM_SERVICE_URI, scimServiceUri);
+        if (providerAuthenticationMetadata != null)
+            builder.putAll(providerAuthenticationMetadata.toJson());
+        if (providerAuthenticationProtocolUrn != null)
+            builder.put(JsonMember.PROVIDER_AUTHENTICATION_METHOD, providerAuthenticationProtocolUrn.getUrn());
         return builder.build();
     }
 
     @Override
-    public void hydrateFromJson(JSONObject json) {
+    public void hydrateFromJson(JsonObject json) {
         if (json == null) return;
         super.hydrateFromJson(json);
 
         // SCIM Service URL
-        setScimServiceUri(json.getString(JSONMember.SCIM_SERVICE_URI));
+        setScimServiceUri(json.getString(JsonMember.SCIM_SERVICE_URI));
 
         // AUTHENTICATION PROTOCOL URN
-        String protocol = json.getString(JSONMember.PROVIDER_AUTHENTICATION_METHOD);
         boolean protocolIsSupported = false;
+        String protocol = json.getString(JsonMember.PROVIDER_AUTHENTICATION_METHOD);
         if (protocol != null) {
             if (ProviderAuthenticationProtocol.isValid(protocol)) {
                 protocolIsSupported = true;
                 setProviderAuthenticationProtocolUrn(ProviderAuthenticationProtocol.fromString(protocol));
             } else {
                 json.getErrorAccumulator().add(
-                        "Unsupported '" + JSONMember.PROVIDER_AUTHENTICATION_METHOD
-                        + "' (value='" + protocol + "')"
+                        "Unsupported value for \"" + getFullyQualifiedName(JsonMember.PROVIDER_AUTHENTICATION_METHOD) +
+                        "\" (value=\"" + protocol + "\")"
                 );
             }
         }
 
         // EXTENDED METADATA FOR THE AUTHENTICATION PROTOCOL
-        if (protocolIsSupported && json.containsValueForMember(protocol)) {
+        JsonObject protocolJson = json.getObject(protocol);
+        if (protocolIsSupported && protocolJson != null) {
             if (protocol.equals( ProviderAuthenticationProtocol.OAUTH2_JWT.getUrn())) {
                 Oauth2JwtServiceMetadata oauth2JwtServiceMetadata = new Oauth2JwtServiceMetadata(getFastFedConfiguration());
-                oauth2JwtServiceMetadata.hydrateFromJson(json.getObject(providerAuthenticationProtocolUrn.toString()));
+                oauth2JwtServiceMetadata.hydrateFromJson(protocolJson);
                 setProviderAuthenticationMethod(oauth2JwtServiceMetadata);
             }
             else {
@@ -123,10 +143,26 @@ public class RegistrationResponseExtension extends Metadata {
 
     @Override
     public void validate(ErrorAccumulator errorAccumulator) {
-        validateRequiredUrl(errorAccumulator, JSONMember.SCIM_SERVICE_URI, scimServiceUri);
-        validateRequiredObject(errorAccumulator, JSONMember.PROVIDER_AUTHENTICATION_METHOD, providerAuthenticationProtocolUrn);
+        validateRequiredUrl(errorAccumulator, JsonMember.SCIM_SERVICE_URI, scimServiceUri);
+        validateRequiredObject(errorAccumulator, JsonMember.PROVIDER_AUTHENTICATION_METHOD, providerAuthenticationProtocolUrn);
         validateRequiredObject(errorAccumulator, providerAuthenticationProtocolUrn.toString(), providerAuthenticationMetadata);
 
         if (providerAuthenticationMetadata != null) { providerAuthenticationMetadata.validate(errorAccumulator); }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        RegistrationResponseExtension that = (RegistrationResponseExtension) o;
+        return Objects.equals(scimServiceUri, that.scimServiceUri) &&
+                providerAuthenticationProtocolUrn == that.providerAuthenticationProtocolUrn &&
+                Objects.equals(providerAuthenticationMetadata, that.providerAuthenticationMetadata);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), scimServiceUri, providerAuthenticationProtocolUrn, providerAuthenticationMetadata);
     }
 }

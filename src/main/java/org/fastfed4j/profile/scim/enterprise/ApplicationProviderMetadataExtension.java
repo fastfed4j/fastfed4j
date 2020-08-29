@@ -1,13 +1,14 @@
 package org.fastfed4j.profile.scim.enterprise;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
-import org.fastfed4j.core.constants.AuthenticationProfile;
-import org.fastfed4j.core.constants.JSONMember;
+import org.fastfed4j.core.constants.JsonMember;
 import org.fastfed4j.core.constants.ProvisioningProfile;
 import org.fastfed4j.core.exception.ErrorAccumulator;
-import org.fastfed4j.core.json.JSONObject;
+import org.fastfed4j.core.json.JsonObject;
 import org.fastfed4j.core.metadata.DesiredAttributes;
 import org.fastfed4j.core.metadata.Metadata;
+
+import java.util.Objects;
 
 /**
  * Represents the extensions to the Application Provider Metadata defined in section 3.1.2
@@ -16,8 +17,8 @@ import org.fastfed4j.core.metadata.Metadata;
 class ApplicationProviderMetadataExtension extends Metadata {
 
     private DesiredAttributes desiredAttributes;
-    private boolean canSupportNestedGroups;
-    private long maxGroupMembershipChanges;
+    private Boolean canSupportNestedGroups;
+    private Integer maxGroupMembershipChanges;
 
     public ApplicationProviderMetadataExtension(FastFedConfiguration configuration) {
         super(configuration);
@@ -32,10 +33,24 @@ class ApplicationProviderMetadataExtension extends Metadata {
     }
 
     /**
+     * Copy constructor
+     * @param other object to copy
+     */
+    public ApplicationProviderMetadataExtension(ApplicationProviderMetadataExtension other) {
+        super(other);
+        this.maxGroupMembershipChanges = other.maxGroupMembershipChanges;
+        this.canSupportNestedGroups = other.canSupportNestedGroups;
+        if (other.desiredAttributes != null)
+            this.desiredAttributes = new DesiredAttributes(other.desiredAttributes);
+    }
+
+    /**
      * Gets the Desired Attributes for the Application Provider
      * @return DesiredAttributes
      */
-    public DesiredAttributes getDesiredAttributes() { return desiredAttributes; }
+    public DesiredAttributes getDesiredAttributes() {
+        return desiredAttributes;
+    }
 
     /**
      * Sets the Desired Attributes for the Application Provider
@@ -49,7 +64,7 @@ class ApplicationProviderMetadataExtension extends Metadata {
      * Gets whether the Application Provider can support nested groups.
      * @return true if the Application Provider supports nested groups
      */
-    public boolean getCanSupportNestedGroups() {
+    public Boolean getCanSupportNestedGroups() {
         return canSupportNestedGroups;
     }
 
@@ -57,7 +72,8 @@ class ApplicationProviderMetadataExtension extends Metadata {
      * Sets whether the Application Provider can support nested groups.
      * @param canSupportNestedGroups true if the Application Provider supports nested groups
      */
-    public void setCanSupportNestedGroups(boolean canSupportNestedGroups) {
+    public void setCanSupportNestedGroups(Boolean canSupportNestedGroups) {
+        Objects.requireNonNull(canSupportNestedGroups, "canSupportNestedGroups must not be null");
         this.canSupportNestedGroups = canSupportNestedGroups;
     }
 
@@ -65,7 +81,7 @@ class ApplicationProviderMetadataExtension extends Metadata {
      * Gets the maximum number of group membership changes that can be included in a single SCIM request.
      * @return max changes
      */
-    public long getMaxGroupMembershipChanges() {
+    public Integer getMaxGroupMembershipChanges() {
         return maxGroupMembershipChanges;
     }
 
@@ -73,62 +89,82 @@ class ApplicationProviderMetadataExtension extends Metadata {
      * Sets the maximum number of group membership changes that can be included in a single SCIM request.
      * @param maxGroupMembershipChanges max changes
      */
-    public void setMaxGroupMembershipChanges(long maxGroupMembershipChanges) {
+    public void setMaxGroupMembershipChanges(Integer maxGroupMembershipChanges) {
+        Objects.requireNonNull(maxGroupMembershipChanges, "maxGroupMembershipChanges must not be null");
         this.maxGroupMembershipChanges = maxGroupMembershipChanges;
     }
 
     @Override
-    public JSONObject toJson() {
-        JSONObject.Builder builder = new JSONObject.Builder(ProvisioningProfile.ENTERPRISE_SCIM.getUrn());
+    public JsonObject toJson() {
+        JsonObject.Builder builder = new JsonObject.Builder(ProvisioningProfile.ENTERPRISE_SCIM.getUrn());
         builder.putAll(super.toJson());
-        builder.putAll(desiredAttributes.toJson());
-        builder.put(JSONMember.SCIM_CAN_SUPPORT_NESTED_GROUPS, canSupportNestedGroups);
-        builder.put(JSONMember.SCIM_MAX_GROUP_MEMBERSHIP_CHANGES, maxGroupMembershipChanges);
+        builder.put(JsonMember.SCIM_CAN_SUPPORT_NESTED_GROUPS, canSupportNestedGroups);
+        builder.put(JsonMember.SCIM_MAX_GROUP_MEMBERSHIP_CHANGES, maxGroupMembershipChanges);
+        if (desiredAttributes != null)
+            builder.putAll(desiredAttributes.toJson());
         return builder.build();
     }
 
     @Override
-    public void hydrateFromJson(JSONObject json) {
+    public void hydrateFromJson(JsonObject json) {
         super.hydrateFromJson(json);
-        DesiredAttributes desiredAttributes = new DesiredAttributes(getFastFedConfiguration());
-        desiredAttributes.hydrateFromJson(json.getObject(JSONMember.DESIRED_ATTRIBUTES));
-        setDesiredAttributes(desiredAttributes);
 
-        if (json.containsValueForMember(JSONMember.SCIM_CAN_SUPPORT_NESTED_GROUPS)) {
-            setCanSupportNestedGroups( json.getBoolean(JSONMember.SCIM_CAN_SUPPORT_NESTED_GROUPS));
-        }
-        else {
-            setCanSupportNestedGroups( getFastFedConfiguration().SCIM_DEFAULT_VALUE_OF_NESTED_GROUP_SUPPORT);
+        JsonObject desiredAttributesJson = json.getObject(JsonMember.DESIRED_ATTRIBUTES);
+        if (desiredAttributesJson != null) {
+            DesiredAttributes desiredAttributes = new DesiredAttributes(getFastFedConfiguration());
+            desiredAttributes.hydrateFromJson(desiredAttributesJson);
+            setDesiredAttributes(desiredAttributes);
         }
 
-        if (json.containsValueForMember(JSONMember.SCIM_MAX_GROUP_MEMBERSHIP_CHANGES)) {
-            setMaxGroupMembershipChanges( json.getLong(JSONMember.SCIM_MAX_GROUP_MEMBERSHIP_CHANGES));
+        Boolean canSupportNestedGroups = json.getBoolean(JsonMember.SCIM_CAN_SUPPORT_NESTED_GROUPS);
+        if (canSupportNestedGroups == null) {
+            canSupportNestedGroups = getFastFedConfiguration().SCIM_DEFAULT_VALUE_OF_NESTED_GROUP_SUPPORT;
         }
-        else {
-            setMaxGroupMembershipChanges( getFastFedConfiguration().SCIM_DEFAULT_VALUE_OF_MAX_GROUP_MEMBERSHIP_CHANGES);
+        setCanSupportNestedGroups(canSupportNestedGroups);
+
+        Integer maxGroupMembershipChanges = json.getInteger(JsonMember.SCIM_MAX_GROUP_MEMBERSHIP_CHANGES);
+        if (maxGroupMembershipChanges == null) {
+            maxGroupMembershipChanges = getFastFedConfiguration().SCIM_DEFAULT_VALUE_OF_MAX_GROUP_MEMBERSHIP_CHANGES;
         }
+        setMaxGroupMembershipChanges(maxGroupMembershipChanges);
     }
 
     @Override
     public void validate(ErrorAccumulator errorAccumulator) {
         // Validate DesiredAttributes
-        validateRequiredObject(errorAccumulator, JSONMember.DESIRED_ATTRIBUTES, desiredAttributes);
+        validateRequiredObject(errorAccumulator, JsonMember.DESIRED_ATTRIBUTES, desiredAttributes);
         if (desiredAttributes != null) { desiredAttributes.validate(errorAccumulator); }
 
         // Validate MaxGroupMembershipChanges
         int upperLimit = getFastFedConfiguration().SCIM_UPPER_LIMIT_OF_MAX_ALLOWED_GROUP_MEMBERSHIP_CHANGES;
         int lowerLimit = getFastFedConfiguration().SCIM_LOWER_LIMIT_OF_MAX_ALLOWED_GROUP_MEMBERSHIP_CHANGES;
         if (maxGroupMembershipChanges > upperLimit) {
-            errorAccumulator.add("Invalid value of '" + JSONMember.SCIM_MAX_GROUP_MEMBERSHIP_CHANGES
+            errorAccumulator.add("Invalid value of '" + JsonMember.SCIM_MAX_GROUP_MEMBERSHIP_CHANGES
                     + "', the received value " + maxGroupMembershipChanges
                     + " exceeds the upper limit of " + upperLimit
             );
         }
         else if (maxGroupMembershipChanges < lowerLimit) {
-            errorAccumulator.add("Invalid value of '" + JSONMember.SCIM_MAX_GROUP_MEMBERSHIP_CHANGES
+            errorAccumulator.add("Invalid value of '" + JsonMember.SCIM_MAX_GROUP_MEMBERSHIP_CHANGES
                     + "', the received value " + maxGroupMembershipChanges
                     + " is below the lower limit of " + lowerLimit
             );
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        ApplicationProviderMetadataExtension that = (ApplicationProviderMetadataExtension) o;
+        return Objects.equals(desiredAttributes, that.desiredAttributes) &&
+                Objects.equals(canSupportNestedGroups, that.canSupportNestedGroups) &&
+                Objects.equals(maxGroupMembershipChanges, that.maxGroupMembershipChanges);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), desiredAttributes, canSupportNestedGroups, maxGroupMembershipChanges);
     }
 }

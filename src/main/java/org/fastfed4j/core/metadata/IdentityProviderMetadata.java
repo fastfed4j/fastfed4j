@@ -1,11 +1,11 @@
 package org.fastfed4j.core.metadata;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
-import org.fastfed4j.core.constants.JSONMember;
+import org.fastfed4j.core.constants.JsonMember;
 import org.fastfed4j.core.exception.ErrorAccumulator;
 import org.fastfed4j.core.exception.FastFedSecurityException;
 import org.fastfed4j.core.exception.InvalidMetadataException;
-import org.fastfed4j.core.json.JSONObject;
+import org.fastfed4j.core.json.JsonObject;
 import org.fastfed4j.core.util.ValidationUtils;
 import org.fastfed4j.profile.Profile;
 
@@ -69,11 +69,11 @@ public class IdentityProviderMetadata extends CommonProviderMetadata {
     }
 
     @Override
-    public JSONObject toJson() {
-        JSONObject.Builder builder = new JSONObject.Builder(JSONMember.IDENTITY_PROVIDER);
+    public JsonObject toJson() {
+        JsonObject.Builder builder = new JsonObject.Builder(JsonMember.IDENTITY_PROVIDER);
         builder.putAll(super.toJson());
-        builder.put(JSONMember.JWKS_URI, jwksUri);
-        builder.put(JSONMember.FASTFED_HANDSHAKE_START_URI, handshakeStartUri);
+        builder.put(JsonMember.JWKS_URI, jwksUri);
+        builder.put(JsonMember.FASTFED_HANDSHAKE_START_URI, handshakeStartUri);
         return builder.build();
     }
 
@@ -114,21 +114,22 @@ public class IdentityProviderMetadata extends CommonProviderMetadata {
     }
 
     @Override
-    public void hydrateFromJson(JSONObject json) {
+    public void hydrateFromJson(JsonObject json) {
         if (json == null) return;
-        json = json.unwrapObjectIfNeeded(JSONMember.IDENTITY_PROVIDER);
+        json = json.unwrapObjectIfNeeded(JsonMember.IDENTITY_PROVIDER);
         super.hydrateFromJson(json);
         hydrateExtensions(json, Profile.ExtensionType.IdentityProviderMetadata);
-        setJwksUri(json.getString(JSONMember.JWKS_URI));
-        setHandshakeStartUri(json.getString(JSONMember.FASTFED_HANDSHAKE_START_URI));
+        setJwksUri(json.getString(JsonMember.JWKS_URI));
+        setHandshakeStartUri(json.getString(JsonMember.FASTFED_HANDSHAKE_START_URI));
     }
 
     @Override
     public void validate(ErrorAccumulator errorAccumulator) {
         super.validate(errorAccumulator);
-        validateExtensions(errorAccumulator, getCapabilities().getAllKnownProfiles(), Profile.ExtensionType.IdentityProviderMetadata);
-        validateRequiredUrl(errorAccumulator, JSONMember.JWKS_URI, jwksUri);
-        validateRequiredUrl(errorAccumulator, JSONMember.FASTFED_HANDSHAKE_START_URI, handshakeStartUri);
+        validateRequiredUrl(errorAccumulator, JsonMember.JWKS_URI, jwksUri);
+        validateRequiredUrl(errorAccumulator, JsonMember.FASTFED_HANDSHAKE_START_URI, handshakeStartUri);
+        if (getCapabilities() != null)
+            validateExtensions(errorAccumulator, getCapabilities().getAllKnownProfiles(), Profile.ExtensionType.IdentityProviderMetadata);
     }
 
     @Override
