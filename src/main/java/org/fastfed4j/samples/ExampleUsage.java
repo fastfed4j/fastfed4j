@@ -149,7 +149,7 @@ public class ExampleUsage {
         System.out.println(appMetadata.toJson().toString());
         System.out.println(contract.toJson().toString());
 
-        ContractProposal proposal = new ContractProposal(contract, ContractProposalStatus.Pending, new Date());
+        ContractProposal proposal = new ContractProposal(contract, new Date());
         System.out.println(proposal.toJson().toString());
 
     }

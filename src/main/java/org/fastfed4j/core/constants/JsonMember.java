@@ -10,7 +10,8 @@ public class JsonMember {
     public static final String CAPABILITIES = "capabilities";
     public static final String CONTRACT = "contract";
     public static final String CONTRACT_PROPOSAL = "contract_proposal";
-    public static final String CONTRACT_PROPOSAL_EXPIRATION = "expiration_date";
+    public static final String CONTRACT_PROPOSAL_CLOSURE_DATE = "closure_date";
+    public static final String CONTRACT_PROPOSAL_EXPIRATION_DATE = "expiration_date";
     public static final String CONTRACT_PROPOSAL_STATUS = "status";
     public static final String DESIRED_ATTRIBUTES = "desired_attributes";
     public static final String DISPLAY_NAME = "display_name";

@@ -300,7 +300,7 @@ abstract public class Metadata {
             // mandates the existence of extended attributes, ensure the extension is defined.
             if (isRequired && !extensionTable.containsKey(profileUrn)) {
                 errorAccumulator.add("Missing extended values for profile \"" + profileUrn + "\"");
-                return;
+                continue;
             }
 
             // If an extension is defined, ensure it is valid.

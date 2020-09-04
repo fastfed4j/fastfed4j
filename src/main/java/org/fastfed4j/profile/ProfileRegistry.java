@@ -60,8 +60,8 @@ public class ProfileRegistry {
      * Gets all the profiles from the registry.
      * @return collection of all profiles
      */
-    public Collection<Profile> getAllProfiles() {
-        return registry.values();
+    public List<Profile> getAllProfiles() {
+        return new ArrayList<>(registry.values());
     }
 
     /**

@@ -110,6 +110,34 @@ public class RegistrationResponseJson extends JsonSource {
             " }";
 
     /**
+     * Extended values are missing for Enterprise SAML and Enterprise SCIM
+     */
+    public static String MISSING_PROFILE_EXTENSIONS =
+            " {\n" +
+            " }";
+
+    /**
+     * Unrecognized profile extensions exist in the JSON
+     */
+    public static String UNKNOWN_PROFILES =
+            " {\n" +
+            "   \"urn:ietf:params:fastfed:1.0:authentication:UNKNOWN:2.0:enterprise\": {\n" +
+            "     \"DUMMY_KEY\": \"DUMMY_VALUE\"\n" +
+            "   },   \n" +
+            "   \"urn:ietf:params:fastfed:1.0:authentication:saml:2.0:enterprise\": {\n" +
+            "     \"saml_metadata_uri\": \"https://tenant-56789.app.example.com/saml-metadata.xml\"\n" +
+            "   },   \n" +
+            "   \"urn:ietf:params:fastfed:1.0:provisioning:scim:2.0:enterprise\": {\n" +
+            "     \"scim_service_uri\": \"https://tenant-56789.app.example.com/scim\",\n" +
+            "     \"provider_authentication_method\": \"urn:ietf:params:fastfed:1.0:provider_authentication:oauth:2.0:jwt_profile\",\n" +
+            "     \"urn:ietf:params:fastfed:1.0:provider_authentication:oauth:2.0:jwt_profile\": {\n" +
+            "       \"token_endpoint\": \"https://tenant-56789.app.example.com/oauth\",\n" +
+            "       \"scope\": \"scim\"\n" +
+            "     }\n" +
+            "   }\n" +
+            " }";
+
+    /**
      * All JSON variations defined in this package.
      */
     public static List<String> ALL_VALID_VARIATIONS = Arrays.asList(

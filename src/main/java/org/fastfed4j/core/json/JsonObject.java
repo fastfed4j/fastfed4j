@@ -320,6 +320,22 @@ public class JsonObject {
         return returnVal;
     }
 
+    /**
+     * The FastFed spec generally requires that unspecified or null values for lists be
+     * treated equivalently to an empty list. To comply with this requirement, this is a
+     * convenience method that returns an empty list if the list is undefined.
+     * @param key
+     * @return Returns the value if defined in the JSON, else returns an empty set.
+     */
+    public Set<String> getNonNullableStringSet (String key) {
+        List<String> stringList = getStringList(key);
+        if (stringList != null) {
+            return new HashSet<String>(stringList);
+        } else {
+            return new HashSet<String>();
+        }
+    }
+
     public JsonObject getObject(String key) {
         Object result = impl.get(key);
         if (null == result) {

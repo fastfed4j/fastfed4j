@@ -178,6 +178,64 @@ public class RegistrationRequestJson extends JsonSource {
             " }";
 
     /**
+     * Extended values are missing for Enterprise SAML and Enterprise SCIM
+     */
+    public static String MISSING_PROFILE_EXTENSIONS =
+            " {\n" +
+            "   \"iss\": \"https://tenant-12345.idp.example.com\",\n" +
+            "   \"aud\": \"https://tenant-67890.app.example.com\",\n" +
+            "   \"exp\": 1234567890,\n" +
+            "   \"authentication_profiles\": [\n" +
+            "     \"urn:ietf:params:fastfed:1.0:authentication:saml:2.0:enterprise\"\n" +
+            "   ],\n" +
+            "   \"provisioning_profiles\": [\n" +
+            "     \"urn:ietf:params:fastfed:1.0:provisioning:scim:2.0:enterprise\"\n" +
+            "   ]\n" +
+            " }";
+
+    /**
+     * Unrecognized profile extensions exist in the JSON
+     */
+    public static String UNKNOWN_PROFILES =
+            " {\n" +
+            "   \"iss\": \"https://tenant-12345.idp.example.com\",\n" +
+            "   \"aud\": \"https://tenant-67890.app.example.com\",\n" +
+            "   \"exp\": 1234567890,\n" +
+            "   \"authentication_profiles\": [\n" +
+            "     \"urn:ietf:params:fastfed:1.0:authentication:saml:2.0:enterprise\",\n" +
+            "     \"urn:ietf:params:fastfed:1.0:authentication:UNKNOWN:2.0:enterprise\"\n" +
+            "   ],\n" +
+            "   \"urn:ietf:params:fastfed:1.0:authentication:saml:2.0:enterprise\": {\n" +
+            "     \"saml_metadata_uri\": \"https://tenant-12345.idp.example.com/saml-metadata.xml\"\n" +
+            "   },\n" +
+            "   \"urn:ietf:params:fastfed:1.0:authentication:UNKNOWN:2.0:enterprise\": {\n" +
+            "     \"DUMMY_KEY\": \"DUMMY_VALUE\"\n" +
+            "   },\n" +
+            "   \"provisioning_profiles\": [\n" +
+            "     \"urn:ietf:params:fastfed:1.0:provisioning:scim:2.0:enterprise\",\n" +
+            "     \"urn:ietf:params:fastfed:1.0:provisioning:UNKNOWN:2.0:enterprise\"\n" +
+            "   ],\n" +
+            "   \"urn:ietf:params:fastfed:1.0:provisioning:UNKNOWN:2.0:enterprise\": {\n" +
+            "     \"DUMMY_KEY\": \"DUMMY_VALUE\"\n" +
+            "   },\n" +
+            "   \"urn:ietf:params:fastfed:1.0:provisioning:scim:2.0:enterprise\": {\n" +
+            "     \"provider_contact_information\": {\n" +
+            "       \"organization\": \"Example Inc.\",\n" +
+            "       \"phone\": \"+1-800-555-5555\",\n" +
+            "       \"email\": \"support@example.com\"\n" +
+            "     },\n" +
+            "     \"provider_authentication_methods\": {\n" +
+            "       \"urn:ietf:params:fastfed:1.0:provider_authentication:oauth:2.0:jwt_profile\": {\n" +
+            "         \"jwks_uri\": \"https://provisioning.example.com/keys\"\n" +
+            "       },\n" +
+            "       \"urn:ietf:params:fastfed:1.0:provider_authentication:UNKNOWN\": {\n" +
+            "         \"DUMMY_KEY\": \"DUMMY_VALUE\"\n" +
+            "       }\n" +
+            "     }\n" +
+            "   }\n" +
+            " }";
+
+    /**
      * All JSON variations defined in this package.
      */
     public static List<String> ALL_VALID_VARIATIONS = Arrays.asList(

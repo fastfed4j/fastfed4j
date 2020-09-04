@@ -52,6 +52,7 @@ public class CompatibilityUtils {
         capabilities.setProvisioningProfiles(mergedProvisioningProfiles);
         capabilities.setSchemaGrammars(mergedSchemaGrammars);
         capabilities.setSigningAlgorithms(mergedSigningAlgorithms);
+
         return capabilities;
     }
 

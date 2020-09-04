@@ -1,6 +1,7 @@
 package org.fastfed4j.test.data;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 public class ContractProposalJson extends JsonSource {
@@ -23,8 +24,8 @@ public class ContractProposalJson extends JsonSource {
     public static String MINIMALLY_POPULATED =
             "{\n" +
             "  \"contract_proposal\": {\n" +
-            "      \"status\": \"Pending\",\n" +
-            "      \"expiration_date\": " + oneHourFromNow() + ",\n" +
+            "      \"status\": \"Accepted\",\n" +
+            "      \"closure_date\": " + (new Date()).getTime() + ",\n" +
                    removeOuterBrackets(ContractJson.MINIMALLY_POPULATED) +
             "   }" +
             "}";

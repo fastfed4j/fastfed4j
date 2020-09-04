@@ -296,6 +296,52 @@ public class ApplicationProviderJson extends JsonSource {
             " }";
 
     /**
+     * Only SCIM provisioning is configured. Optional SCIM values, such as max_group_membership_changes, are omitted.
+     */
+    public static String ONLY_ENTERPRISE_SCIM_WITH_MINIMAL_SCIM_SETTINGS =
+            "{\n" +
+            "   \"application_provider\": {\n" +
+            "     \"entity_id\": \"https://tenant-67890.app.example.com/\",\n" +
+            "     \"provider_domain\": \"app.example.com\",\n" +
+            "     \"provider_contact_information\": {\n" +
+            "       \"organization\": \"Example Inc.\",\n" +
+            "       \"phone\": \"+1-800-555-5555\",\n" +
+            "       \"email\": \"support@example.com\"\n" +
+            "     },\n" +
+            "     \"display_settings\": {\n" +
+            "       \"display_name\": \"Example Application Provider\",\n" +
+            "       \"logo_uri\": \"https://app.example.com/images/logo.png\",\n" +
+            "       \"icon_uri\": \"https://app.example.com/images/icon.png\",\n" +
+            "       \"license\": \"https://openid.net/intellectual-property/licenses/fastfed/1.0/\"\n" +
+            "     },\n" +
+            "     \"capabilities\": {\n" +
+            "       \"provisioning_profiles\": [\n" +
+            "         \"urn:ietf:params:fastfed:1.0:provisioning:scim:2.0:enterprise\"\n" +
+            "       ],\n" +
+            "       \"schema_grammars\": [\n" +
+            "         \"urn:ietf:params:fastfed:1.0:schemas:scim:2.0\"\n" +
+            "       ],\n" +
+            "       \"signing_algorithms\": [\n" +
+            "         \"ES512\",\n" +
+            "         \"RS256\"\n" +
+            "       ]\n" +
+            "     },\n" +
+            "     \"urn:ietf:params:fastfed:1.0:provisioning:scim:2.0:enterprise\": {\n" +
+            "       \"desired_attributes\": {\n" +
+            "         \"urn:ietf:params:fastfed:1.0:schemas:scim:2.0\": {\n" +
+            "           \"required_user_attributes\": [\n" +
+            "             \"externalId\",\n" +
+            "             \"userName\",\n" +
+            "             \"active\"\n" +
+            "           ]\n" +
+            "         }\n" +
+            "       }\n" +
+            "     },\n" +
+            "     \"fastfed_handshake_register_uri\": \"https://tenant-67890.app.example.com/fastfed/register\"\n" +
+            "     }\n" +
+            " }";
+
+    /**
      * Invalid Types for each attribute
      */
     public static String INVALID_TYPES =
@@ -376,6 +422,134 @@ public class ApplicationProviderJson extends JsonSource {
             " }";
 
     /**
+     * Extended values are missing for Enterprise SAML and Enterprise SCIM
+     */
+    public static String MISSING_PROFILE_EXTENSIONS =
+            "{\n" +
+            "   \"application_provider\": {\n" +
+            "     \"entity_id\": \"https://tenant-67890.app.example.com/\",\n" +
+            "     \"provider_domain\": \"app.example.com\",\n" +
+            "     \"provider_contact_information\": {\n" +
+            "       \"organization\": \"Example Inc.\",\n" +
+            "       \"phone\": \"+1-800-555-5555\",\n" +
+            "       \"email\": \"support@example.com\"\n" +
+            "     },\n" +
+            "     \"display_settings\": {\n" +
+            "       \"display_name\": \"Example Application Provider\",\n" +
+            "       \"logo_uri\": \"https://app.example.com/images/logo.png\",\n" +
+            "       \"icon_uri\": \"https://app.example.com/images/icon.png\",\n" +
+            "       \"license\": \"https://openid.net/intellectual-property/licenses/fastfed/1.0/\"\n" +
+            "     },\n" +
+            "     \"capabilities\": {\n" +
+            "       \"authentication_profiles\": [\n" +
+            "         \"urn:ietf:params:fastfed:1.0:authentication:saml:2.0:enterprise\"\n" +
+            "       ],\n" +
+            "       \"provisioning_profiles\": [\n" +
+            "         \"urn:ietf:params:fastfed:1.0:provisioning:scim:2.0:enterprise\"\n" +
+            "       ],\n" +
+            "       \"schema_grammars\": [\n" +
+            "         \"urn:ietf:params:fastfed:1.0:schemas:scim:2.0\"\n" +
+            "       ],\n" +
+            "       \"signing_algorithms\": [\n" +
+            "         \"ES512\",\n" +
+            "         \"RS256\"\n" +
+            "       ]\n" +
+            "     },\n" +
+            "     \"fastfed_handshake_register_uri\": \"https://tenant-67890.app.example.com/fastfed/register\"\n" +
+            "     }\n" +
+            " }";
+
+    /**
+     * Unrecognized profile extensions exist in the JSON
+     */
+    public static String UNKNOWN_PROFILES =
+            "{\n" +
+            "   \"application_provider\": {\n" +
+            "     \"entity_id\": \"https://tenant-67890.app.example.com/\",\n" +
+            "     \"provider_domain\": \"app.example.com\",\n" +
+            "     \"provider_contact_information\": {\n" +
+            "       \"organization\": \"Example Inc.\",\n" +
+            "       \"phone\": \"+1-800-555-5555\",\n" +
+            "       \"email\": \"support@example.com\"\n" +
+            "     },\n" +
+            "     \"display_settings\": {\n" +
+            "       \"display_name\": \"Example Application Provider\",\n" +
+            "       \"logo_uri\": \"https://app.example.com/images/logo.png\",\n" +
+            "       \"icon_uri\": \"https://app.example.com/images/icon.png\",\n" +
+            "       \"license\": \"https://openid.net/intellectual-property/licenses/fastfed/1.0/\"\n" +
+            "     },\n" +
+            "     \"capabilities\": {\n" +
+            "       \"authentication_profiles\": [\n" +
+            "         \"urn:ietf:params:fastfed:1.0:authentication:saml:2.0:enterprise\",\n" +
+            "         \"urn:ietf:params:fastfed:1.0:authentication:UNKNOWN:2.0:enterprise\"\n" +
+            "       ],\n" +
+            "       \"provisioning_profiles\": [\n" +
+            "         \"urn:ietf:params:fastfed:1.0:provisioning:scim:2.0:enterprise\",\n" +
+            "         \"urn:ietf:params:fastfed:1.0:provisioning:UNKNOWN:2.0:enterprise\"\n" +
+            "       ],\n" +
+            "       \"schema_grammars\": [\n" +
+            "         \"urn:ietf:params:fastfed:1.0:schemas:scim:2.0\"\n" +
+            "         \"urn:ietf:params:fastfed:1.0:schemas:UNKNOWN:2.0\"\n" +
+            "       ],\n" +
+            "       \"signing_algorithms\": [\n" +
+            "         \"ES512\",\n" +
+            "         \"RS256\"\n" +
+            "       ]\n" +
+            "     },\n" +
+            "     \"urn:ietf:params:fastfed:1.0:authentication:UNKNOWN:2.0:enterprise\": {\n" +
+            "       \"DUMMY_KEY\": \"DUMMY_VALUE\"" +
+            "     }," +
+            "     \"urn:ietf:params:fastfed:1.0:authentication:saml:2.0:enterprise\": {\n" +
+            "       \"desired_attributes\": {\n" +
+            "         \"urn:ietf:params:fastfed:1.0:schemas:scim:2.0\": {\n" +
+            "           \"required_user_attributes\": [\n" +
+            "            \"externalId\",\n" +
+            "             \"userName\",\n" +
+            "             \"emails[primary eq true].value\"\n" +
+            "           ],\n" +
+            "           \"optional_user_attributes\": [\n" +
+            "             \"displayName\",\n" +
+            "             \"phoneNumbers[primary eq true].value\"\n" +
+            "           ]\n" +
+            "         }\n" +
+            "       }\n" +
+            "     },\n" +
+            "     \"urn:ietf:params:fastfed:1.0:provisioning:UNKNOWN:2.0:enterprise\": {\n" +
+            "       \"DUMMY_KEY\": \"DUMMY_VALUE\"" +
+            "     }," +
+            "     \"urn:ietf:params:fastfed:1.0:provisioning:scim:2.0:enterprise\": {\n" +
+            "       \"can_support_nested_groups\": true,\n" +
+            "       \"max_group_membership_changes\": 500,\n" +
+            "       \"desired_attributes\": {\n" +
+            "         \"urn:ietf:params:fastfed:1.0:schemas:scim:2.0\": {\n" +
+            "           \"DUMMY_KEY\": \"DUMMY_VALUE\"" +
+            "         }," +
+            "         \"urn:ietf:params:fastfed:1.0:schemas:scim:2.0\": {\n" +
+            "           \"required_user_attributes\": [\n" +
+            "             \"externalId\",\n" +
+            "             \"userName\",\n" +
+            "             \"active\",\n" +
+            "             \"emails[primary eq true].value\"\n" +
+            "           ],\n" +
+            "           \"optional_user_attributes\": [\n" +
+            "             \"displayName\",\n" +
+            "             \"phoneNumbers[primary eq true].value\"\n" +
+            "           ],\n" +
+            "           \"required_group_attributes\": [\n" +
+            "             \"displayName\",\n" +
+            "             \"externalId\"\n" +
+            "           ],\n" +
+            "           \"optional_group_attributes\": [\n" +
+            "             \"members\"\n" +
+            "           ]" +
+            "         }\n" +
+            "       }\n" +
+            "     },\n" +
+            "     \"fastfed_handshake_register_uri\": \"https://tenant-67890.app.example.com/fastfed/register\"\n" +
+            "     }\n" +
+            " }";
+
+    /**
      * All JSON variations defined in this package.
      */
     public static List<String> ALL_VALID_VARIATIONS = Arrays.asList(
@@ -384,6 +558,7 @@ public class ApplicationProviderJson extends JsonSource {
             MINIMALLY_POPULATED_WITH_NULLS,
             MINIMALLY_POPULATED_WITH_EMPTY_VALUES,
             ONLY_ENTERPRISE_SAML,
-            ONLY_ENTERPRISE_SCIM
+            ONLY_ENTERPRISE_SCIM,
+            ONLY_ENTERPRISE_SCIM_WITH_MINIMAL_SCIM_SETTINGS
     );
 }

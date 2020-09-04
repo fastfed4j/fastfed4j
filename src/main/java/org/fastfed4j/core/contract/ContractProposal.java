@@ -26,6 +26,7 @@ public class ContractProposal extends Metadata {
 
     private Contract contract;
     private Date expirationDate;
+    private Date closureDate;
     private ContractProposalStatus status;
 
     /**
@@ -37,19 +38,17 @@ public class ContractProposal extends Metadata {
     }
 
     /**
-     * Constructs with all properties
+     * Constructs a Contract Proposal with initial status as "Pending" and an expirationDate
      * @param contract contract being proposed
-     * @param status status of the proposal
      * @param expirationDate expirationDate of the proposal
      */
-    public ContractProposal(Contract contract, ContractProposalStatus status, Date expirationDate) {
+    public ContractProposal(Contract contract, Date expirationDate) {
         this(contract == null ? null : contract.getFastFedConfiguration());
         Objects.requireNonNull(contract, "contract must not be null");
-        Objects.requireNonNull(status, "status must not be null");
         Objects.requireNonNull(expirationDate, "expirationDate must not be null");
-        setContract(contract);
-        setStatus(status);
-        setExpirationDate(expirationDate);
+        this.contract = contract;
+        this.expirationDate = expirationDate;
+        this.status = ContractProposalStatus.Pending;
     }
 
     /**
@@ -58,11 +57,13 @@ public class ContractProposal extends Metadata {
      */
     public ContractProposal(ContractProposal other) {
         super(other);
+        this.status = other.status;
         if (other.contract != null )
             this.contract = new Contract(other.contract);
         if (other.expirationDate != null)
             this.expirationDate = new Date(other.expirationDate.getTime());
-        this.status = other.status;
+        if (other.closureDate != null)
+            this.closureDate = new Date(other.closureDate.getTime());
     }
 
     public Contract getContract() {
@@ -81,6 +82,14 @@ public class ContractProposal extends Metadata {
         this.expirationDate = expirationDate;
     }
 
+    public Date getClosureDate() {
+        return closureDate;
+    }
+
+    public void setClosureDate(Date closureDate) {
+        this.closureDate = closureDate;
+    }
+
     public ContractProposalStatus getStatus() {
         return status;
     }
@@ -89,13 +98,42 @@ public class ContractProposal extends Metadata {
         this.status = status;
     }
 
+    public void convertToAccepted() {
+        assertStatusIsPending();
+        status = ContractProposalStatus.Accepted;
+        expirationDate = null;
+        closureDate = new Date();
+    }
+
+    public void convertToCancelled() {
+        assertStatusIsPending();
+        status = ContractProposalStatus.Cancelled;
+        expirationDate = null;
+        closureDate = new Date();
+    }
+
+    public boolean notCancelledOrExpired() {
+        if (status == ContractProposalStatus.Cancelled)
+            return false;
+        if (expirationDate != null && expirationDate.getTime() < (new Date()).getTime())
+            return false;
+
+        return true;
+    }
+
+    private void assertStatusIsPending() {
+        if (status != ContractProposalStatus.Pending)
+            throw new RuntimeException("Contract Proposal is already closed. (Current status = " + status.toString() + ")");
+    }
+
     @Override
     public JsonObject toJson() {
         JsonObject.Builder builder = new JsonObject.Builder(JsonMember.CONTRACT_PROPOSAL);
         builder.putAll(super.toJson());
         builder.putAll(contract.toJson());
         builder.put(JsonMember.CONTRACT_PROPOSAL_STATUS, status.toString());
-        builder.put(JsonMember.CONTRACT_PROPOSAL_EXPIRATION, expirationDate);
+        builder.put(JsonMember.CONTRACT_PROPOSAL_EXPIRATION_DATE, expirationDate);
+        builder.put(JsonMember.CONTRACT_PROPOSAL_CLOSURE_DATE, closureDate);
         return builder.build();
     }
 
@@ -119,7 +157,8 @@ public class ContractProposal extends Metadata {
         json = json.unwrapObjectIfNeeded(JsonMember.CONTRACT_PROPOSAL);
         super.hydrateFromJson(json);
 
-        setExpirationDate( json.getDate(JsonMember.CONTRACT_PROPOSAL_EXPIRATION));
+        setExpirationDate( json.getDate(JsonMember.CONTRACT_PROPOSAL_EXPIRATION_DATE));
+        setClosureDate( json.getDate(JsonMember.CONTRACT_PROPOSAL_CLOSURE_DATE));
 
         String status = json.getString(JsonMember.CONTRACT_PROPOSAL_STATUS);
         if (status != null) {
@@ -144,7 +183,6 @@ public class ContractProposal extends Metadata {
 
     @Override
     public void validate(ErrorAccumulator errorAccumulator) {
-        validateRequiredObject(errorAccumulator, JsonMember.CONTRACT_PROPOSAL_EXPIRATION, expirationDate);
         validateRequiredObject(errorAccumulator, JsonMember.CONTRACT_PROPOSAL_STATUS, status);
         validateRequiredObject(errorAccumulator, JsonMember.CONTRACT, contract);
         if (contract != null) { contract.validate(errorAccumulator); }
@@ -156,13 +194,14 @@ public class ContractProposal extends Metadata {
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
         ContractProposal that = (ContractProposal) o;
-        return contract.equals(that.contract) &&
-                expirationDate.equals(that.expirationDate) &&
+        return Objects.equals(contract, that.contract) &&
+                Objects.equals(expirationDate, that.expirationDate) &&
+                Objects.equals(closureDate, that.closureDate) &&
                 status == that.status;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), contract, expirationDate, status);
+        return Objects.hash(super.hashCode(), contract, expirationDate, closureDate, status);
     }
 }

@@ -1,6 +1,7 @@
 package org.fastfed4j.test;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
+import org.fastfed4j.core.constants.ProvisioningProfile;
 import org.fastfed4j.core.contract.Contract;
 import org.fastfed4j.core.contract.ContractProposal;
 import org.fastfed4j.core.contract.EnabledProfiles;
@@ -10,6 +11,7 @@ import org.fastfed4j.core.metadata.ApplicationProviderMetadata;
 import org.fastfed4j.core.metadata.IdentityProviderMetadata;
 import org.fastfed4j.core.metadata.RegistrationRequest;
 import org.fastfed4j.core.metadata.RegistrationResponse;
+import org.fastfed4j.profile.scim.enterprise.EnterpriseSCIM;
 import org.fastfed4j.test.data.*;
 import org.fastfed4j.test.evaluator.contract.ContractEvaluator;
 import org.fastfed4j.test.evaluator.contract.ContractProposalEvaluator;
@@ -19,6 +21,7 @@ import org.fastfed4j.test.evaluator.metadata.IdentityProviderMetadataEvaluator;
 import org.fastfed4j.test.evaluator.metadata.RegistrationRequestEvaluator;
 import org.fastfed4j.test.evaluator.metadata.RegistrationResponseEvaluator;
 import org.junit.*;
+
 
 /**
  * The following tests evaluate each metadata object for the following actions:
@@ -146,5 +149,54 @@ public class JsonSerializationTest {
             ContractProposal rehydrated = ContractProposal.fromJson(config, original.toJson().toString());
             Assert.assertEquals(original, rehydrated);
         }
+    }
+
+    @Test
+    public void testUnknownProfilesInApplicationMetadata() {
+        String json = ApplicationProviderJson.UNKNOWN_PROFILES;
+        // Ensure this doesn't throw an InvalidMetadataException
+        ApplicationProviderMetadata metadata = ApplicationProviderMetadata.fromJson(config, json);
+    }
+
+    @Test
+    public void testEnterpriseScimDefaultValuesInApplicationMetadataExtension() {
+        // Hydrates from a JSON object containing no values for CanSupportNestedGroups and
+        // MaxGroupMembershipChanges. Ensures that default values are injected during hydration.
+        String json = ApplicationProviderJson.ONLY_ENTERPRISE_SCIM_WITH_MINIMAL_SCIM_SETTINGS;
+        ApplicationProviderMetadata metadata = ApplicationProviderMetadata.fromJson(config, json);
+        Assert.assertEquals(
+                (int)FastFedConfiguration.SCIM_DEFAULT_VALUE_OF_MAX_GROUP_MEMBERSHIP_CHANGES,
+                (int)metadata.getEnterpriseScimExtension().getMaxGroupMembershipChanges()
+        );
+        Assert.assertEquals(
+                FastFedConfiguration.SCIM_DEFAULT_VALUE_OF_NESTED_GROUP_SUPPORT,
+                metadata.getEnterpriseScimExtension().getCanSupportNestedGroups()
+        );
+    }
+
+    @Test
+    public void testEnterpriseScimConfigValuesInApplicationMetadataExtension() {
+        // Customizes the values of CanSupportNestedGroups and MaxGroupMembershipChanges, then ensures
+        // these values get included when serializing to JSON.
+        FastFedConfiguration.Builder builder = new FastFedConfiguration.Builder();
+        builder.setCanSupportNestedGroupsInScim(true);
+        builder.setMaxGroupMembershipChangesInScim(123);
+        FastFedConfiguration localConfig = builder.build();
+
+        // For convenience, construct a new ApplicationProviderMetadata object from JSON,
+        // then overwrite the EnterpriseSCIM.ApplicationProviderMetadataExtension with a new value
+        // to exercise this test case. (Otherwise, the values will just be whatever came from the original JSON.)
+        String json = ApplicationProviderJson.FULLY_POPULATED;
+        ApplicationProviderMetadata metadata = ApplicationProviderMetadata.fromJson(localConfig, json);
+        EnterpriseSCIM.ApplicationProviderMetadataExtension scimExtension = new EnterpriseSCIM.ApplicationProviderMetadataExtension(localConfig);
+        scimExtension.setDesiredAttributes(metadata.getEnterpriseScimExtension().getDesiredAttributes());
+        metadata.addMetadataExtension(ProvisioningProfile.ENTERPRISE_SCIM.getUrn(), scimExtension);
+
+        // At this point, we have an ApplicationMetadata object containing an EnterpriseSCIM extension with no values
+        // explicitly set for CanSupportNestedGroups and MaxGroupMembershipChanges.
+        // Convert it to JSON and back, and ensure what we get is the settings from our FastFedConfiguration.
+        ApplicationProviderMetadata rehydrated = ApplicationProviderMetadata.fromJson(localConfig, metadata.toJson().toString());
+        Assert.assertEquals(true, metadata.getEnterpriseScimExtension().getCanSupportNestedGroups());
+        Assert.assertEquals(123, (int)metadata.getEnterpriseScimExtension().getMaxGroupMembershipChanges());
     }
 }

@@ -47,8 +47,8 @@ public class Capabilities extends Metadata {
     }
 
     public void setAuthenticationProfiles(Set<String> authenticationProfiles) {
-        if (authenticationProfiles != null)
-            this.authenticationProfiles = authenticationProfiles;
+        Objects.requireNonNull(authenticationProfiles, "authenticationProfiles must not be null");
+        this.authenticationProfiles = authenticationProfiles;
     }
 
     public Set<String> getProvisioningProfiles() {
@@ -56,8 +56,8 @@ public class Capabilities extends Metadata {
     }
 
     public void setProvisioningProfiles(Set<String> provisioningProfiles) {
-        if (provisioningProfiles != null)
-           this.provisioningProfiles = provisioningProfiles;
+        Objects.requireNonNull(provisioningProfiles, "provisioningProfiles must not be null");
+        this.provisioningProfiles = provisioningProfiles;
     }
 
     public Set<String> getSchemaGrammars() {
@@ -65,8 +65,8 @@ public class Capabilities extends Metadata {
     }
 
     public void setSchemaGrammars(Set<String> schemaGrammars) {
-        if (schemaGrammars != null)
-           this.schemaGrammars = schemaGrammars;
+        Objects.requireNonNull(schemaGrammars, "schemaGrammars must not be null");
+        this.schemaGrammars = schemaGrammars;
     }
 
     public Set<String> getSigningAlgorithms() {
@@ -74,8 +74,8 @@ public class Capabilities extends Metadata {
     }
 
     public void setSigningAlgorithms(Set<String> signingAlgorithms) {
-        if (signingAlgorithms != null)
-           this.signingAlgorithms = signingAlgorithms;
+        Objects.requireNonNull(signingAlgorithms, "signingAlgorithms must not be null");
+        this.signingAlgorithms = signingAlgorithms;
     }
 
     /**
@@ -126,10 +126,11 @@ public class Capabilities extends Metadata {
         if (json == null) return;
         json = json.unwrapObjectIfNeeded(JsonMember.CAPABILITIES);
         super.hydrateFromJson(json);
-        setAuthenticationProfiles( json.getStringSet(JsonMember.AUTHENTICATION_PROFILES));
-        setProvisioningProfiles( json.getStringSet(JsonMember.PROVISIONING_PROFILES));
-        setSchemaGrammars( json.getStringSet(JsonMember.SCHEMA_GRAMMARS));
-        setSigningAlgorithms( json.getStringSet(JsonMember.SIGNING_ALGORITHMS));
+
+        setAuthenticationProfiles( json.getNonNullableStringSet(JsonMember.AUTHENTICATION_PROFILES));
+        setProvisioningProfiles( json.getNonNullableStringSet(JsonMember.PROVISIONING_PROFILES));
+        setSchemaGrammars( json.getNonNullableStringSet(JsonMember.SCHEMA_GRAMMARS));
+        setSigningAlgorithms( json.getNonNullableStringSet(JsonMember.SIGNING_ALGORITHMS));
     }
 
     @Override

@@ -42,9 +42,9 @@ public class EnabledProfiles extends Metadata {
     public EnabledProfiles(EnabledProfiles other) {
         super(other);
         if (other.authenticationProfiles != null)
-            this.authenticationProfiles = new HashSet<String>(other.authenticationProfiles);
+            this.authenticationProfiles = new HashSet<>(other.authenticationProfiles);
         if (other.provisioningProfiles != null)
-            this.provisioningProfiles = new HashSet<String>(other.provisioningProfiles);
+            this.provisioningProfiles = new HashSet<>(other.provisioningProfiles);
     }
 
     /**
@@ -60,8 +60,8 @@ public class EnabledProfiles extends Metadata {
      * @param authenticationProfiles authentication profile URNs
      */
     public void setAuthenticationProfiles(Set<String> authenticationProfiles) {
-        if (authenticationProfiles != null)
-            this.authenticationProfiles = authenticationProfiles;
+        Objects.requireNonNull(authenticationProfiles, "authenticationProfiles must not be null");
+        this.authenticationProfiles = authenticationProfiles;
     }
 
     /**
@@ -77,8 +77,8 @@ public class EnabledProfiles extends Metadata {
      * @param provisioningProfiles provisioning profile URNs
      */
     public void setProvisioningProfiles(Set<String> provisioningProfiles) {
-        if (provisioningProfiles != null)
-           this.provisioningProfiles = provisioningProfiles;
+        Objects.requireNonNull(provisioningProfiles, "provisioningProfiles must not be null");
+        this.provisioningProfiles = provisioningProfiles;
     }
 
     /**
@@ -111,8 +111,8 @@ public class EnabledProfiles extends Metadata {
         if (json == null) return;
         json = json.unwrapObjectIfNeeded(JsonMember.ENABLED_PROFILES);
         super.hydrateFromJson(json);
-        setAuthenticationProfiles( json.getStringSet(JsonMember.AUTHENTICATION_PROFILES));
-        setProvisioningProfiles( json.getStringSet(JsonMember.PROVISIONING_PROFILES));
+        setAuthenticationProfiles( json.getNonNullableStringSet(JsonMember.AUTHENTICATION_PROFILES));
+        setProvisioningProfiles( json.getNonNullableStringSet(JsonMember.PROVISIONING_PROFILES));
     }
 
     @Override

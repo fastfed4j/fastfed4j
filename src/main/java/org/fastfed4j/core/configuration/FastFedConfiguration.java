@@ -127,6 +127,22 @@ public class FastFedConfiguration {
         private int scimMaxGroupMembershipChanges = SCIM_DEFAULT_VALUE_OF_MAX_GROUP_MEMBERSHIP_CHANGES;
 
         /**
+         * Construct a new Builder with default values for all settings
+         */
+        public Builder() {}
+
+        /**
+         * Construct a new Builder using an existing FastFedConfiguration to initialize the config values.
+         * @param initialConfig Existing FastFedConfiguration used to initialize the config values.
+         */
+        public Builder(FastFedConfiguration initialConfig) {
+            this.profileRegistry = new ProfileRegistry(initialConfig.profileRegistry.getAllProfiles());
+            this.preferredSchemaGrammar = initialConfig.preferredSchemaGrammar;
+            this.scimCanSupportNestedGroups = initialConfig.scimCanSupportNestedGroups;
+            this.scimMaxGroupMembershipChanges = initialConfig.scimMaxGroupMembershipChanges;
+        }
+
+        /**
          * Generates an immutable instance of FastFedConfiguration from the Builder settings.
          * @return FastFedConfiguration
          */
