@@ -8,17 +8,21 @@ import org.fastfed4j.core.exception.ErrorAccumulator;
 import org.fastfed4j.core.exception.FastFedSecurityException;
 import org.fastfed4j.core.exception.InvalidMetadataException;
 import org.fastfed4j.core.json.JsonObject;
+import org.fastfed4j.core.util.FormattingUtils;
 import org.fastfed4j.core.util.ValidationUtils;
 import org.fastfed4j.profile.saml.enterprise.EnterpriseSAML;
 import org.fastfed4j.profile.Profile;
 import org.fastfed4j.profile.scim.enterprise.EnterpriseSCIM;
 
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Represents the Application Provider Metadata defined in section 3.3.8 of the FastFed Core specification.
  */
 public class ApplicationProviderMetadata extends CommonProviderMetadata {
+    private static final FormattingUtils formattingUtils = new FormattingUtils();
     private static final ValidationUtils validationUtils = new ValidationUtils();
 
     private String handshakeRegisterUri;
@@ -131,8 +135,52 @@ public class ApplicationProviderMetadata extends CommonProviderMetadata {
     public void validate(ErrorAccumulator errorAccumulator) {
         super.validate(errorAccumulator);
         validateRequiredUrl(errorAccumulator, JsonMember.FASTFED_HANDSHAKE_REGISTER_URI, handshakeRegisterUri);
+
         if (getCapabilities() != null) {
-            validateExtensions(errorAccumulator, getCapabilities().getAllKnownProfiles(), Profile.ExtensionType.ApplicationProviderMetadata);
+            validateExtensions(errorAccumulator, getCapabilities().getAllKnownProfileUrns(), Profile.ExtensionType.ApplicationProviderMetadata);
+
+            // Ensure that Desired Attributes contains definitions for each schema grammar within
+            // the Capabilities, as required by section 3.3.5 of the FastFed Core specification.
+            // Note that this validation can only examine the profiles defined within this SDK. Any externally
+            // defined profiles are responsible for performing their own validation.
+            String enterpriseSamlUrn = AuthenticationProfile.ENTERPRISE_SAML.getUrn();
+            String enterpriseScimUrn = ProvisioningProfile.ENTERPRISE_SCIM.getUrn();
+            Set<String> schemaGrammars = getCapabilities().getSchemaGrammars();
+            for (String profileUrn : getFastFedConfiguration().getProfileRegistry().getAllUrns()) {
+                if (profileUrn.equals(enterpriseSamlUrn)) {
+                    String attributeName = JsonMember.APPLICATION_PROVIDER + "." + enterpriseSamlUrn + "." + JsonMember.DESIRED_ATTRIBUTES;
+                    DesiredAttributes desiredAttributes = getEnterpriseSamlExtension() == null ? null : getEnterpriseSamlExtension().getDesiredAttributes();
+                    ensureDesiredAttributesContainsAllSchemaGrammars(errorAccumulator, attributeName, schemaGrammars, desiredAttributes);
+                } else if (profileUrn.equals(enterpriseScimUrn)) {
+                    String attributeName = JsonMember.APPLICATION_PROVIDER + "." + enterpriseScimUrn + "." + JsonMember.DESIRED_ATTRIBUTES;
+                    DesiredAttributes desiredAttributes = getEnterpriseScimExtension() == null ? null : getEnterpriseScimExtension().getDesiredAttributes();
+                    ensureDesiredAttributesContainsAllSchemaGrammars(errorAccumulator, attributeName, schemaGrammars, desiredAttributes);
+                }
+            }
+        }
+    }
+
+    private void ensureDesiredAttributesContainsAllSchemaGrammars(ErrorAccumulator errorAccumulator,
+                                                                  String attributeName,
+                                                                  Set<String> expectedSchemaGrammars,
+                                                                  DesiredAttributes desiredAttributes)
+    {
+        if (desiredAttributes == null)
+            return;
+
+        Set<String> actualSchemaGrammars = desiredAttributes.getAllSchemaGrammarUrns();
+        Set<String> missingGrammars = new HashSet<>();
+        for (String expectedUrn : expectedSchemaGrammars) {
+            if (! actualSchemaGrammars.contains(expectedUrn))
+                missingGrammars.add(expectedUrn);
+        }
+
+        if (! missingGrammars.isEmpty()) {
+            errorAccumulator.add(
+                    "Invalid value for \"" + attributeName + "\". " +
+                    "Must contain entries for all schema_grammars defined in the Capabilities. " +
+                    "Missing: " + formattingUtils.joinAndQuote(missingGrammars)
+            );
         }
     }
 

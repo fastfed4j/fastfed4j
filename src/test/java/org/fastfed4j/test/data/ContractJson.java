@@ -63,10 +63,13 @@ public class ContractJson extends JsonSource {
             "      \"fastfed_handshake_finalize_uri\": \"https://tenant-67890.app.example.com/fastfed/finalize\",\n" +
             "      \"application_provider_metadata_extensions\": {\n" +
             "        \"urn:ietf:params:fastfed:1.0:authentication:saml:2.0:enterprise\": {\n" +
+            "          \"saml_subject\": {\n" +
+            "            \"urn:ietf:params:fastfed:1.0:schemas:scim:2.0\": \"emails[primary eq true].value\"" +
+            "          }\n" +
             "          \"desired_attributes\": {\n" +
             "            \"urn:ietf:params:fastfed:1.0:schemas:scim:2.0\": {\n" +
             "              \"required_user_attributes\": [\n" +
-            "                \"username\",\n" +
+            "                \"userName\",\n" +
             "                \"emails[primary eq true].value\"\n" +
             "              ],\n" +
             "              \"optional_user_attributes\": [\n" +
@@ -221,10 +224,13 @@ public class ContractJson extends JsonSource {
             "      \"fastfed_handshake_finalize_uri\": \"https://tenant-67890.app.example.com/fastfed/finalize\",\n" +
             "      \"application_provider_metadata_extensions\": {\n" +
             "        \"urn:ietf:params:fastfed:1.0:authentication:saml:2.0:enterprise\": {\n" +
+            "          \"saml_subject\": {\n" +
+            "            \"urn:ietf:params:fastfed:1.0:schemas:scim:2.0\": \"emails[primary eq true].value\"" +
+            "          }\n" +
             "          \"desired_attributes\": {\n" +
             "            \"urn:ietf:params:fastfed:1.0:schemas:scim:2.0\": {\n" +
             "              \"required_user_attributes\": [\n" +
-            "                \"username\",\n" +
+            "                \"userName\",\n" +
             "                \"emails[primary eq true].value\"\n" +
             "              ],\n" +
             "              \"optional_user_attributes\": [\n" +

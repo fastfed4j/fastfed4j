@@ -129,7 +129,7 @@ public class IdentityProviderMetadata extends CommonProviderMetadata {
         validateRequiredUrl(errorAccumulator, JsonMember.JWKS_URI, jwksUri);
         validateRequiredUrl(errorAccumulator, JsonMember.FASTFED_HANDSHAKE_START_URI, handshakeStartUri);
         if (getCapabilities() != null)
-            validateExtensions(errorAccumulator, getCapabilities().getAllKnownProfiles(), Profile.ExtensionType.IdentityProviderMetadata);
+            validateExtensions(errorAccumulator, getCapabilities().getAllKnownProfileUrns(), Profile.ExtensionType.IdentityProviderMetadata);
     }
 
     @Override

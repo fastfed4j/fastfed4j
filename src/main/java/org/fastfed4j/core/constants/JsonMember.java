@@ -48,6 +48,7 @@ public class JsonMember {
     public static final String REQUIRED_USER_ATTRIBUTES = "required_user_attributes";
     public static final String SAML_METADATA_URI = "saml_metadata_uri";
     public static final String SAML_RESPONSE_ATTRIBUTES = "saml_response_attributes";
+    public static final String SAML_SUBJECT = "saml_subject";
     public static final String SCHEMA_GRAMMAR = "schema_grammar";
     public static final String SCHEMA_GRAMMARS = "schema_grammars";
     public static final String SCIM_CAN_SUPPORT_NESTED_GROUPS = "can_support_nested_groups";

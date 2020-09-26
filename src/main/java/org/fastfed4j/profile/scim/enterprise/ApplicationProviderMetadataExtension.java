@@ -3,18 +3,37 @@ package org.fastfed4j.profile.scim.enterprise;
 import org.fastfed4j.core.configuration.FastFedConfiguration;
 import org.fastfed4j.core.constants.JsonMember;
 import org.fastfed4j.core.constants.ProvisioningProfile;
+import org.fastfed4j.core.constants.SchemaGrammar;
 import org.fastfed4j.core.exception.ErrorAccumulator;
 import org.fastfed4j.core.json.JsonObject;
 import org.fastfed4j.core.metadata.DesiredAttributes;
 import org.fastfed4j.core.metadata.Metadata;
+import org.fastfed4j.core.util.FormattingUtils;
 
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Represents the extensions to the Application Provider Metadata defined in section 3.1.2
  * of the FastFed Enterprise SCIM Profile.
  */
 class ApplicationProviderMetadataExtension extends Metadata {
+
+    // As per Section 3.1.2 of the Enterprise SCIM Profile
+    private static final Set<String> REQUIRED_USER_ATTRIBUTES = Set.of(
+            "externalId",
+            "userName",
+            "active"
+    );
+
+    // As per Section 3.1.2 of the Enterprise SCIM Profile
+    private static final Set<String> REQUIRED_GROUP_ATTRIBUTES = Set.of(
+            "externalId",
+            "displayName"
+    );
+
+    private static final FormattingUtils formattingUtils = new FormattingUtils();
 
     private DesiredAttributes desiredAttributes;
     private Boolean canSupportNestedGroups;
@@ -133,21 +152,92 @@ class ApplicationProviderMetadataExtension extends Metadata {
     public void validate(ErrorAccumulator errorAccumulator) {
         // Validate DesiredAttributes
         validateRequiredObject(errorAccumulator, JsonMember.DESIRED_ATTRIBUTES, desiredAttributes);
-        if (desiredAttributes != null) { desiredAttributes.validate(errorAccumulator); }
+        if (desiredAttributes != null) {
+            desiredAttributes.validate(errorAccumulator);
+            ensureRequiredAttributesExist(errorAccumulator);
+        }
 
         // Validate MaxGroupMembershipChanges
+        ensureMaxGroupMembershipChangesInBounds(errorAccumulator);
+    }
+
+    /**
+     * Enforces Section 3.1.2 of the Enterprise SCIM specification
+     */
+    private void ensureMaxGroupMembershipChangesInBounds(ErrorAccumulator errorAccumulator) {
         int upperLimit = getFastFedConfiguration().SCIM_UPPER_LIMIT_OF_MAX_ALLOWED_GROUP_MEMBERSHIP_CHANGES;
         int lowerLimit = getFastFedConfiguration().SCIM_LOWER_LIMIT_OF_MAX_ALLOWED_GROUP_MEMBERSHIP_CHANGES;
         if (maxGroupMembershipChanges > upperLimit) {
             errorAccumulator.add("Invalid value of '" + JsonMember.SCIM_MAX_GROUP_MEMBERSHIP_CHANGES
-                    + "', the received value " + maxGroupMembershipChanges
-                    + " exceeds the upper limit of " + upperLimit
+                                  + "', the received value " + maxGroupMembershipChanges
+                                  + " exceeds the upper limit of " + upperLimit
             );
         }
         else if (maxGroupMembershipChanges < lowerLimit) {
             errorAccumulator.add("Invalid value of '" + JsonMember.SCIM_MAX_GROUP_MEMBERSHIP_CHANGES
-                    + "', the received value " + maxGroupMembershipChanges
-                    + " is below the lower limit of " + lowerLimit
+                                  + "', the received value " + maxGroupMembershipChanges
+                                  + " is below the lower limit of " + lowerLimit
+            );
+        }
+    }
+
+    /**
+     * Enforces Section 3.1.2 of the Enterprise SCIM specification
+     */
+    private void ensureRequiredAttributesExist(ErrorAccumulator errorAccumulator) {
+        for (SchemaGrammar schemaGrammar : desiredAttributes.getAllSchemaGrammars()) {
+            if (!schemaGrammar.equals(SchemaGrammar.SCIM)) {
+                // If a new Schema Grammar is added in the future, this will alert that the
+                // validation needs updating.
+                throw new RuntimeException("Missing handler for schema grammar " + schemaGrammar);
+            }
+
+            Set<String> requiredUserAttributes = desiredAttributes.forSchemaGrammar(schemaGrammar).getRequiredUserAttributes();
+            Set<String> requiredGroupAttributes = desiredAttributes.forSchemaGrammar(schemaGrammar).getRequiredGroupAttributes();
+            Set<String> optionalGroupAttributes = desiredAttributes.forSchemaGrammar(schemaGrammar).getOptionalGroupAttributes();
+            boolean requiredGroupAttributesExist = requiredGroupAttributes != null && !requiredGroupAttributes.isEmpty();
+            boolean optionalGroupAttributesExist = optionalGroupAttributes != null && !optionalGroupAttributes.isEmpty();
+            boolean groupProvisioningEnabled = requiredGroupAttributesExist || optionalGroupAttributesExist;
+
+            inspectForRequiredAttributes(
+                    errorAccumulator,
+                    schemaGrammar,
+                    JsonMember.REQUIRED_USER_ATTRIBUTES,
+                    REQUIRED_USER_ATTRIBUTES,
+                    requiredUserAttributes
+            );
+
+            if (groupProvisioningEnabled) {
+                inspectForRequiredAttributes(
+                        errorAccumulator,
+                        schemaGrammar,
+                        JsonMember.REQUIRED_GROUP_ATTRIBUTES,
+                        REQUIRED_GROUP_ATTRIBUTES,
+                        requiredGroupAttributes
+                );
+            }
+
+        }
+    }
+
+    private void inspectForRequiredAttributes(ErrorAccumulator errorAccumulator,
+                                              SchemaGrammar schemaGrammar,
+                                              String memberName,
+                                              Set<String> requiredAttributes,
+                                              Set<String> actualAttributes)
+    {
+        Set<String> missingValues = new HashSet<>();
+        for (String value : requiredAttributes) {
+            if (! actualAttributes.contains(value))
+                missingValues.add(value);
+        }
+
+        if (! missingValues.isEmpty()) {
+            String fullyQualifiedName = getFullyQualifiedName(schemaGrammar + "." + memberName);
+            errorAccumulator.add(
+                "Missing required value in \"" + fullyQualifiedName + "\". " +
+                "Must contain: " + formattingUtils.joinAndQuote(requiredAttributes) +
+                ". (Missing: " + formattingUtils.joinAndQuote(missingValues) + ")"
             );
         }
     }

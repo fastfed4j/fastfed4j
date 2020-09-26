@@ -275,7 +275,8 @@ abstract public class Metadata {
         for (String profileUrn : profileUrns) {
             Profile profile = getFastFedConfiguration().getProfileRegistry().getByUrn(profileUrn);
             if (profile == null) {
-                throw new RuntimeException("No profile is registered for " + profileUrn);
+                // Ignore unrecognized profiles.
+                return;
             }
 
             boolean isRequired = false;

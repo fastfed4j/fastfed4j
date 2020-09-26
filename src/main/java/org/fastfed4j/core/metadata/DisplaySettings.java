@@ -6,6 +6,7 @@ import org.fastfed4j.core.exception.ErrorAccumulator;
 import org.fastfed4j.core.json.JsonObject;
 
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Represents the Display Settings metadata, as defined in section 3.3.2 of the FastFed Core specification.
@@ -90,10 +91,31 @@ public class DisplaySettings extends Metadata {
 
     @Override
     public void validate(ErrorAccumulator errorAccumulator) {
-         validateRequiredString(errorAccumulator, JsonMember.DISPLAY_NAME, this.displayName);
-         validateRequiredUrl(errorAccumulator, JsonMember.LICENSE, this.license);
-         validateOptionalUrl(errorAccumulator, JsonMember.LOGO_URI, this.logoUri);
-         validateOptionalUrl(errorAccumulator, JsonMember.ICON_URI, this.iconUri);
+         validateRequiredString(errorAccumulator, JsonMember.DISPLAY_NAME, displayName);
+         validateRequiredUrl(errorAccumulator, JsonMember.LICENSE, license);
+         validateOptionalUrl(errorAccumulator, JsonMember.LOGO_URI, logoUri);
+         validateOptionalUrl(errorAccumulator, JsonMember.ICON_URI, iconUri);
+
+         //Verify the license is supported
+        Set<String> supportedLicenses = getFastFedConfiguration().getSupportedLicenses();
+        if (! supportedLicenses.contains(license)) {
+            StringBuilder builder = new StringBuilder();
+            builder.append("Unsupported value for \"");
+            builder.append(getFullyQualifiedName(JsonMember.LICENSE));
+            builder.append("\". Must be ");
+            if (supportedLicenses.size() == 1) {
+                builder.append("\"");
+                builder.append(supportedLicenses.iterator().next());
+                builder.append("\"");
+            } else {
+                builder.append(" one of ");
+                builder.append( String.join(",", supportedLicenses));
+            }
+            builder.append(" (received: \"");
+            builder.append(license);
+            builder.append("\")");
+            errorAccumulator.add(builder.toString());
+        }
     }
 
     @Override

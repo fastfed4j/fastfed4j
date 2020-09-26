@@ -10,7 +10,7 @@ public enum ContractChangeType {
         None,
 
         /**
-         * Creation of a new contract. No prior contract.
+         * Initial creation of a new contract.
          */
         Create,
 
@@ -23,8 +23,10 @@ public enum ContractChangeType {
         MetadataRefresh,
 
         /**
-         * Authentication or provisioning profiles were changed. Requires action to formally
-         * enable or disable these capabilities for end-users.
+         * Authentication or provisioning profiles were changed. This includes activating a new profile,
+         * deactivating an existing profile, or modifying the user/group attributes transmitted through an existing
+         * authentication or provisioning protocol. If the new Contract is accepted, the Provider must perform
+         * any actions that are necessary to enable or disable these capabilities for end-users.
          */
         ProfileChange,
 

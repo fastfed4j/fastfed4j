@@ -4,6 +4,7 @@ import org.fastfed4j.core.configuration.FastFedConfiguration;
 import org.fastfed4j.core.constants.JsonMember;
 import org.fastfed4j.core.exception.ErrorAccumulator;
 import org.fastfed4j.core.json.JsonObject;
+import org.fastfed4j.profile.saml.enterprise.EnterpriseSAML;
 
 import java.util.*;
 

@@ -24,10 +24,10 @@ public class DesiredAttributes extends Metadata {
      */
     public class ForSchemaGrammar {
         private SchemaGrammar schemaGrammar;
-        private List<String> requiredUserAttributes;
-        private List<String> optionalUserAttributes;
-        private List<String> requiredGroupAttributes;
-        private List<String> optionalGroupAttributes;
+        private Set<String> requiredUserAttributes;
+        private Set<String> optionalUserAttributes;
+        private Set<String> requiredGroupAttributes;
+        private Set<String> optionalGroupAttributes;
 
         public ForSchemaGrammar() {
         }
@@ -46,35 +46,35 @@ public class DesiredAttributes extends Metadata {
             this.schemaGrammar = schemaGrammar;
         }
 
-        public List<String> getRequiredUserAttributes() {
+        public Set<String> getRequiredUserAttributes() {
             return requiredUserAttributes;
         }
 
-        public void setRequiredUserAttributes(List<String> requiredUserAttributes) {
+        public void setRequiredUserAttributes(Set<String> requiredUserAttributes) {
             this.requiredUserAttributes = requiredUserAttributes;
         }
 
-        public List<String> getOptionalUserAttributes() {
+        public Set<String> getOptionalUserAttributes() {
             return optionalUserAttributes;
         }
 
-        public void setOptionalUserAttributes(List<String> optionalUserAttributes) {
+        public void setOptionalUserAttributes(Set<String> optionalUserAttributes) {
             this.optionalUserAttributes = optionalUserAttributes;
         }
 
-        public List<String> getRequiredGroupAttributes() {
+        public Set<String> getRequiredGroupAttributes() {
             return requiredGroupAttributes;
         }
 
-        public void setRequiredGroupAttributes(List<String> requiredGroupAttributes) {
+        public void setRequiredGroupAttributes(Set<String> requiredGroupAttributes) {
             this.requiredGroupAttributes = requiredGroupAttributes;
         }
 
-        public List<String> getOptionalGroupAttributes() {
+        public Set<String> getOptionalGroupAttributes() {
             return optionalGroupAttributes;
         }
 
-        public void setOptionalGroupAttributes(List<String> optionalGroupAttributes) {
+        public void setOptionalGroupAttributes(Set<String> optionalGroupAttributes) {
             this.optionalGroupAttributes = optionalGroupAttributes;
         }
 
@@ -119,11 +119,64 @@ public class DesiredAttributes extends Metadata {
     }
 
     /**
+     * Adds the contents of another object into the current object. If the resulting merge causes an attribute
+     * to appear in both the required & optional settings, the duplicate is removed from the optional settings.
+     * @param other object to merge
+     */
+    public void merge(DesiredAttributes other) {
+        for (SchemaGrammar schemaGrammar : desiredAttributes.keySet()) {
+            DesiredAttributes.ForSchemaGrammar thisValue = this.desiredAttributes.get(schemaGrammar);
+            DesiredAttributes.ForSchemaGrammar otherValue = other.desiredAttributes.get(schemaGrammar);
+            thisValue.requiredUserAttributes.addAll( other.getRequiredUserAttributes());
+            thisValue.optionalUserAttributes.addAll( other.getOptionalUserAttributes());
+            thisValue.requiredGroupAttributes.addAll( other.getRequiredGroupAttributes());
+            thisValue.optionalGroupAttributes.addAll( other.getOptionalGroupAttributes());
+
+            for (String attribute : thisValue.optionalUserAttributes) {
+                if (thisValue.requiredUserAttributes.contains(attribute))
+                    thisValue.optionalUserAttributes.remove(attribute);
+            }
+            for (String attribute : thisValue.optionalGroupAttributes) {
+                if (thisValue.requiredGroupAttributes.contains(attribute))
+                    thisValue.optionalGroupAttributes.remove(attribute);
+            }
+        }
+    }
+
+    /**
+     * Adds a User Attribute into the Required User Attributes.
+     * @param userAttribute
+     */
+    public void addRequiredUserAttribute(UserAttribute userAttribute) {
+        if (userAttribute == null)
+            return;
+
+        for (SchemaGrammar schemaGrammar : userAttribute.getAllSchemaGrammars()) {
+            String value = userAttribute.forSchemaGrammar(schemaGrammar);
+            if (desiredAttributes.containsKey(schemaGrammar)) {
+                desiredAttributes.get(schemaGrammar).requiredUserAttributes.add(value);
+            }
+        }
+    }
+
+    /**
      * Gets all the available schema grammars.
      * @return collection of schema grammars
      */
     public Set<SchemaGrammar> getAllSchemaGrammars() {
         return desiredAttributes.keySet();
+    }
+
+    /**
+     * Gets the URNs of all the available schema grammars
+     * @return collection of schema grammar URNs
+     */
+    public Set<String> getAllSchemaGrammarUrns() {
+        Set<String> returnVal = new HashSet<>();
+        for (SchemaGrammar schemaGrammar : getAllSchemaGrammars()) {
+            returnVal.add(schemaGrammar.getUrn());
+        }
+        return returnVal;
     }
 
     /**
@@ -135,11 +188,26 @@ public class DesiredAttributes extends Metadata {
     }
 
     /**
+     * Adds a new instance of DesiredAttributes.ForSchemaGrammar into the DesiredAttributes.
+     * @return desired attributes as represented in the schema grammar
+     */
+    public void put(ForSchemaGrammar forSchemaGrammar) {
+        desiredAttributes.put(forSchemaGrammar.getSchemaGrammar(), forSchemaGrammar);
+    }
+
+    /**
+     * Removes an instance of DesiredAttributes.ForSchemaGrammar from the DesiredAttributes.
+     */
+    public void remove(SchemaGrammar schemaGrammar) {
+        desiredAttributes.remove(schemaGrammar);
+    }
+
+    /**
      * Convenience method to get the required user attributes expressed in the
      * preferred schema grammar, as specified in the FastFedConfiguration.
      * @return required user attributes
      */
-    public List<String> getRequiredUserAttributes() {
+    public Set<String> getRequiredUserAttributes() {
         return forSchemaGrammar(preferredSchemaGrammar).getRequiredUserAttributes();
     }
 
@@ -148,7 +216,7 @@ public class DesiredAttributes extends Metadata {
      * preferred schema grammar, as specified in the FastFedConfiguration.
      * @return optional user attributes
      */
-    public List<String> getOptionalUserAttributes() {
+    public Set<String> getOptionalUserAttributes() {
         return forSchemaGrammar(preferredSchemaGrammar).getOptionalUserAttributes();
     }
 
@@ -157,7 +225,7 @@ public class DesiredAttributes extends Metadata {
      * preferred schema grammar, as specified in the FastFedConfiguration.
      * @return required group attributes
      */
-    public List<String> getRequiredGroupAttributes() {
+    public Set<String> getRequiredGroupAttributes() {
         return forSchemaGrammar(preferredSchemaGrammar).getRequiredGroupAttributes();
     }
 
@@ -166,7 +234,7 @@ public class DesiredAttributes extends Metadata {
      * preferred schema grammar, as specified in the FastFedConfiguration.
      * @return optional group attributes
      */
-    public List<String> getOptionalGroupAttributes() {
+    public Set<String> getOptionalGroupAttributes() {
         return forSchemaGrammar(preferredSchemaGrammar).getOptionalGroupAttributes();
     }
 
@@ -197,42 +265,31 @@ public class DesiredAttributes extends Metadata {
         }
 
         for (String schemaGrammarString : json.keySet()) {
-            // The following block smuggles a bit of semantic validation into the JSON deserialization.
-            // The reason is that a common error mode is anticipated to be that users forget
-            // to encapsulate the desired attributes under a particular schema grammar.
-            // This would cause the JSON deserialization to generate an opaque type mismatch error.
-            // To improve usability, this check produces a helpful, descriptive error message
-            // and ceases any further deserialization if the contents aren't properly nested under a
-            // recognized schema grammar.
-            if (! validateSchemaGrammar(json.getErrorAccumulator(), schemaGrammarString)) {
-                break;
-            }
+            if (! SchemaGrammar.isValid(schemaGrammarString))
+                continue;
 
             SchemaGrammar schemaGrammar = SchemaGrammar.fromString(schemaGrammarString);
             JsonObject schemaJson = json.getObject(schemaGrammarString);
 
             DesiredAttributes.ForSchemaGrammar forSchema = new DesiredAttributes.ForSchemaGrammar();
             forSchema.setSchemaGrammar(schemaGrammar);
-            forSchema.setRequiredUserAttributes( schemaJson.getStringList(JsonMember.REQUIRED_USER_ATTRIBUTES));
-            forSchema.setOptionalUserAttributes( schemaJson.getStringList(JsonMember.OPTIONAL_USER_ATTRIBUTES));
-            forSchema.setRequiredGroupAttributes( schemaJson.getStringList(JsonMember.REQUIRED_GROUP_ATTRIBUTES));
-            forSchema.setOptionalGroupAttributes( schemaJson.getStringList(JsonMember.OPTIONAL_GROUP_ATTRIBUTES));
+            forSchema.setRequiredUserAttributes( schemaJson.getStringSet(JsonMember.REQUIRED_USER_ATTRIBUTES));
+            forSchema.setOptionalUserAttributes( schemaJson.getStringSet(JsonMember.OPTIONAL_USER_ATTRIBUTES));
+            forSchema.setRequiredGroupAttributes( schemaJson.getStringSet(JsonMember.REQUIRED_GROUP_ATTRIBUTES));
+            forSchema.setOptionalGroupAttributes( schemaJson.getStringSet(JsonMember.OPTIONAL_GROUP_ATTRIBUTES));
             this.desiredAttributes.put(schemaGrammar, forSchema);
         }
     }
 
     @Override
     public void validate(ErrorAccumulator errorAccumulator) {
-        if (desiredAttributes.size() == 0) {
-            errorAccumulator.add("Missing value for \"" + JsonMember.DESIRED_ATTRIBUTES + "\"");
-        }
-
         for (SchemaGrammar schemaGrammar : desiredAttributes.keySet()) {
+            String jsonPath = schemaGrammar.toString() + ".";
             DesiredAttributes.ForSchemaGrammar forSchema = forSchemaGrammar(schemaGrammar);
-            validateRequiredStringCollection(errorAccumulator, JsonMember.REQUIRED_USER_ATTRIBUTES, forSchema.requiredUserAttributes);
-            validateOptionalStringCollection(errorAccumulator, JsonMember.OPTIONAL_USER_ATTRIBUTES, forSchema.optionalUserAttributes);
-            validateOptionalStringCollection(errorAccumulator, JsonMember.REQUIRED_GROUP_ATTRIBUTES, forSchema.requiredGroupAttributes);
-            validateOptionalStringCollection(errorAccumulator, JsonMember.OPTIONAL_GROUP_ATTRIBUTES, forSchema.optionalGroupAttributes);
+            validateRequiredStringCollection(errorAccumulator, jsonPath + JsonMember.REQUIRED_USER_ATTRIBUTES, forSchema.requiredUserAttributes);
+            validateOptionalStringCollection(errorAccumulator, jsonPath + JsonMember.OPTIONAL_USER_ATTRIBUTES, forSchema.optionalUserAttributes);
+            validateOptionalStringCollection(errorAccumulator, jsonPath + JsonMember.REQUIRED_GROUP_ATTRIBUTES, forSchema.requiredGroupAttributes);
+            validateOptionalStringCollection(errorAccumulator, jsonPath + JsonMember.OPTIONAL_GROUP_ATTRIBUTES, forSchema.optionalGroupAttributes);
         }
     }
 

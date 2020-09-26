@@ -1,6 +1,7 @@
 package org.fastfed4j.test;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
+import org.fastfed4j.core.constants.SchemaGrammar;
 import org.fastfed4j.core.exception.IncompatibleProvidersException;
 import org.fastfed4j.core.metadata.ApplicationProviderMetadata;
 import org.fastfed4j.core.metadata.Capabilities;

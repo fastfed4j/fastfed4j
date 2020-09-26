@@ -6,6 +6,7 @@ import org.fastfed4j.profile.Profile;
 import org.fastfed4j.profile.ProfileRegistry;
 
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Allows customization of the SDK behavior.
@@ -23,6 +24,14 @@ public class FastFedConfiguration {
      */
     // Implementors Note: If this is changed, also update the public javadocs below.
     private static final SchemaGrammar DEFAULT_SCHEMA_GRAMMAR = SchemaGrammar.SCIM;
+
+    /**
+     * Default value of supported FastFed Licenses, as used in Section 3.3.2 of the FastFed Core specification.
+     */
+    // Implementors Note: If this is changed, also update the public javadocs below.
+    private static final Set<String> DEFAULT_SUPPORTED_LICENSES = Set.of(
+            "https://openid.net/intellectual-property/licenses/fastfed/1.0/"
+    );
 
     /**
      * Indicates whether nested groups are supported for SCIM provisioning.
@@ -52,11 +61,12 @@ public class FastFedConfiguration {
     // Implementors Note: If this is changed, also update the public javadocs below.
     public static final int SCIM_DEFAULT_VALUE_OF_MAX_GROUP_MEMBERSHIP_CHANGES = 100;
 
+
     private final ProfileRegistry profileRegistry;
     private final SchemaGrammar preferredSchemaGrammar;
     private final boolean scimCanSupportNestedGroups;
     private final int scimMaxGroupMembershipChanges;
-
+    private final Set<String> supportedLicenses;
 
     /**
      * Instance of FastFedConfiguration containing the default values for all settings.
@@ -83,6 +93,7 @@ public class FastFedConfiguration {
         this.preferredSchemaGrammar = builder.preferredSchemaGrammar;
         this.scimCanSupportNestedGroups = builder.scimCanSupportNestedGroups;
         this.scimMaxGroupMembershipChanges = builder.scimMaxGroupMembershipChanges;
+        this.supportedLicenses = builder.supportedLicenses;
     }
 
     /**
@@ -96,8 +107,21 @@ public class FastFedConfiguration {
     }
 
     /**
+     * Gets the supported licenses for image sharing, as referenced in Section 3.3.2 of
+     * the FastFed Core specification. Default value is "https://openid.net/intellectual-property/licenses/fastfed/1.0/"
+     * @return supported licenses
+     */
+    public Set<String> getSupportedLicenses() {
+        return supportedLicenses;
+    }
+
+    /**
      * Gets the preferred schema grammar to use when interacting with Desired Attributes.
-     * @return ProfileRegistry
+     * The current implementation of fastfed4j only supports SCIM 2.0, as described in
+     * section 3.3.4 of the FastFed Core specification. As a result, the return
+     * value of this method will always be "urn:ietf:params:fastfed:1.0:schemas:scim:2.0".
+     * Future evolutions may change this behavior and introduce support for additional schemas.
+     * @return SchemaGrammar
      */
     public SchemaGrammar getPreferredSchemaGrammar() {return preferredSchemaGrammar;}
 
@@ -125,6 +149,7 @@ public class FastFedConfiguration {
         private SchemaGrammar preferredSchemaGrammar = DEFAULT_SCHEMA_GRAMMAR;
         private boolean scimCanSupportNestedGroups = SCIM_DEFAULT_VALUE_OF_NESTED_GROUP_SUPPORT;
         private int scimMaxGroupMembershipChanges = SCIM_DEFAULT_VALUE_OF_MAX_GROUP_MEMBERSHIP_CHANGES;
+        private Set<String> supportedLicenses = DEFAULT_SUPPORTED_LICENSES;
 
         /**
          * Construct a new Builder with default values for all settings
@@ -175,15 +200,33 @@ public class FastFedConfiguration {
         }
 
         /**
-         * Sets the preferred schema grammar to be used when interacting with Desired Attributes.
-         * Default value is "urn:ietf:params:fastfed:1.0:schemas:scim:2.0".
+         * Sets the allowed FastFed Licenses for image sharing, as referenced in Section 3.3.2 of
+         * the FastFed Core specification. Default value is "https://openid.net/intellectual-property/licenses/fastfed/1.0/"
+         * @param supportedLicenses new set of licenses
          * @return Builder
          */
-        public Builder setPreferredSchemaGrammar(SchemaGrammar schemaGrammar) {
-            Objects.requireNonNull(schemaGrammar, "schemaGrammar must not be null");
-            this.preferredSchemaGrammar = schemaGrammar;
+        public Builder setSupportedLicenses(Set<String> supportedLicenses) {
+            Objects.requireNonNull(supportedLicenses, "supportedLicenses must not be null");
+            if (supportedLicenses.isEmpty())
+                throw new IllegalArgumentException("supportedLicenses must not be empty");
+
+            this.supportedLicenses = supportedLicenses;
             return this;
         }
+
+        // Note - currently, only the SCIM schema grammar is supported. Hence, the ability to set alternative values
+        // is disabled. See additional information in org/fastfed4j/core/constants/SchemaGrammar.java
+        //
+        ///**
+        // * Sets the preferred schema grammar to be used when interacting with Desired Attributes.
+        // * Default value is "urn:ietf:params:fastfed:1.0:schemas:scim:2.0".
+        // * @return Builder
+        // */
+        //public Builder setPreferredSchemaGrammar(SchemaGrammar schemaGrammar) {
+        //    Objects.requireNonNull(schemaGrammar, "schemaGrammar must not be null");
+        //    this.preferredSchemaGrammar = schemaGrammar;
+        //    return this;
+        //}
 
         /**
          * Sets whether nested groups are supported in SCIM provisioning. Default value is false.

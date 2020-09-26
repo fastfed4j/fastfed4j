@@ -1,9 +1,12 @@
 package org.fastfed4j.core.contract;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
+import org.fastfed4j.core.constants.SchemaGrammar;
 import org.fastfed4j.core.exception.FastFedSecurityException;
+import org.fastfed4j.core.exception.InvalidChangeException;
 import org.fastfed4j.core.metadata.ApplicationProviderMetadata;
 import org.fastfed4j.core.metadata.Capabilities;
+import org.fastfed4j.core.metadata.DesiredAttributes;
 import org.fastfed4j.core.metadata.IdentityProviderMetadata;
 import org.fastfed4j.core.util.CompatibilityUtils;
 
@@ -21,11 +24,18 @@ public class ContractChange {
     private final FastFedConfiguration configuration;
     private final Contract oldContract;
     private final Contract newContract;
+
     private ContractChangeType changeType;
     private Set<String> authenticationProfilesAdded = new HashSet<>();
     private Set<String> authenticationProfilesRemoved = new HashSet<>();
     private Set<String> provisioningProfilesAdded = new HashSet<>();
     private Set<String> provisioningProfilesRemoved = new HashSet<>();
+    private Set<String> userAttributesAdded = new HashSet<>();
+    private Set<String> userAttributesRemoved = new HashSet<>();
+    private Set<String> groupAttributesAdded = new HashSet<>();
+    private Set<String> groupAttributesRemoved = new HashSet<>();
+    private boolean isActivatingGroupProvisioning;
+    private boolean isDeactivatingGroupProvisioning;
 
     /**
      * Amend a Contract as a result of a FastFed Background Refresh, as defined in Section 4.1.5
@@ -47,10 +57,18 @@ public class ContractChange {
         Contract newContract = new Contract(currentContract);
 
         // Only a subset of attributes can be mutated by a recurring background refresh.
-        newContract.getIdentityProvider().setProviderContactInformation( idpMetadata.getProviderContactInformation());
-        newContract.getIdentityProvider().setDisplaySettings( idpMetadata.getDisplaySettings());
-        newContract.getApplicationProvider().setProviderContactInformation( appMetadata.getProviderContactInformation());
-        newContract.getApplicationProvider().setDisplaySettings( appMetadata.getDisplaySettings());
+        // See Section 4.1.5 of the FastFed Core specification.
+        newContract.getIdentityProvider().getProviderContactInformation().setEmail( idpMetadata.getProviderContactInformation().getEmail());
+        newContract.getIdentityProvider().getProviderContactInformation().setPhone( idpMetadata.getProviderContactInformation().getPhone());
+        newContract.getIdentityProvider().getProviderContactInformation().setOrganization( idpMetadata.getProviderContactInformation().getOrganization());
+        newContract.getIdentityProvider().getDisplaySettings().setLogoUri( idpMetadata.getDisplaySettings().getLogoUri());
+        newContract.getIdentityProvider().getDisplaySettings().setIconUri( idpMetadata.getDisplaySettings().getIconUri());
+
+        newContract.getApplicationProvider().getProviderContactInformation().setEmail( appMetadata.getProviderContactInformation().getEmail());
+        newContract.getApplicationProvider().getProviderContactInformation().setPhone( appMetadata.getProviderContactInformation().getPhone());
+        newContract.getApplicationProvider().getProviderContactInformation().setOrganization( appMetadata.getProviderContactInformation().getOrganization());
+        newContract.getApplicationProvider().getDisplaySettings().setLogoUri( appMetadata.getDisplaySettings().getLogoUri());
+        newContract.getApplicationProvider().getDisplaySettings().setIconUri( appMetadata.getDisplaySettings().getIconUri());
 
         // Amongst the Capabilities, only the signing algorithms can be mutated by a recurring background refresh.
         Capabilities sharedCapabilities =
@@ -95,13 +113,14 @@ public class ContractChange {
      * Construct a ContractChange by comparing prior and new versions of the contract.
      * @param newContract new version of the contract
      * @param oldContract prior version of the contract
+     * @throws InvalidChangeException if the new contract would cause a prohibited change
      */
     public ContractChange(Contract newContract, Contract oldContract) {
         Objects.requireNonNull(newContract);
         this.configuration = newContract.getFastFedConfiguration();
         this.oldContract = oldContract;
         this.newContract = newContract;
-        setChangeDetails();
+        populateChangeDetails();
     }
 
     /**
@@ -126,6 +145,19 @@ public class ContractChange {
      */
     public ContractChangeType getChangeType() {
         return changeType;
+    }
+
+    public boolean hasChangesToAuthenticationProfiles() {
+        return (!authenticationProfilesAdded.isEmpty() || !authenticationProfilesRemoved.isEmpty());
+    }
+
+    public boolean hasChangesToProvisioningProfiles() {
+        return (!provisioningProfilesAdded.isEmpty() || !provisioningProfilesRemoved.isEmpty());
+    }
+
+    public boolean hasChangesToDesiredAttributes() {
+        return (!userAttributesAdded.isEmpty() || !userAttributesRemoved.isEmpty() ||
+                !groupAttributesAdded.isEmpty() || !groupAttributesRemoved.isEmpty());
     }
 
     /**
@@ -165,9 +197,104 @@ public class ContractChange {
     }
 
     /**
+     * Returns the collection of user attributes that will be newly exposed to the Application as a result
+     * of the contract change, expressed in the PreferredSchemaGrammar defined in the FastFedConfiguration.
+     * Currently, the only supported schema grammar is SCIM 2.0, as described in Section 3.3.4 of the FastFed Core
+     * specification.
+     * @return user attributes added to the contract
+     */
+    public Set<String> getUserAttributesAdded() {
+        return userAttributesAdded;
+    }
+
+    /**
+     * Returns the collection of user attributes that were removed from the contract and hence, going forward, will
+     * cease being shared with the Application. The attributes are expressed in the PreferredSchemaGrammar defined
+     * in the FastFedConfiguration. Currently, the only supported schema grammar is SCIM 2.0, as described
+     * in Section 3.3.4 of the FastFed Core specification.
+     * @return user attributes removed from the contract
+     */
+    public Set<String> getUserAttributesRemoved() {
+        return userAttributesRemoved;
+    }
+
+    /**
+     * Returns the collection of group attributes that will be newly exposed to the Application as a result
+     * of the contract change, expressed in the PreferredSchemaGrammar defined in the FastFedConfiguration.
+     * Currently, the only supported schema grammar is SCIM 2.0, as described in Section 3.3.4 of the FastFed Core
+     * specification.
+     * @return group attributes added to the contract
+     */
+    public Set<String> getGroupAttributesAdded() {
+        return groupAttributesAdded;
+    }
+
+    /**
+     * Returns the collection of group attributes that were removed from the contract and hence, going forward, will
+     * cease being shared with the Application. The attributes are expressed in the PreferredSchemaGrammar defined
+     * in the FastFedConfiguration. Currently, the only supported schema grammar is SCIM 2.0, as described
+     * in Section 3.3.4 of the FastFed Core specification.
+     * @return group attributes removed from the contract
+     */
+    public Set<String> getGroupAttributesRemoved() {
+        return groupAttributesRemoved;
+    }
+
+    /**
+     * Indicates whether the contract change will result in newly enabling the provisioning of groups to the Application.
+     * Note that this may not fully activate group provisioning as each protocol may impose additional
+     * requirements. For example, sections 4.3 and 4.4 of the Enterprise SCIM Profile require that Applications
+     * host a SCIM /ResourceTypes endpoint to prove they support Groups before provisioning will occur. This method
+     * simply indicates that the Application has asked for group information in the set of DesiredAttributes.
+     * @return true if the change will newly enable the provisioning of groups to the Application
+     */
+    public boolean isActivatingGroupProvisioning() {
+        return isActivatingGroupProvisioning;
+    }
+
+    /**
+     * Indicates that group provisioning was previously enabled and that the contract change will disable it.
+     * Going forward, the Application will cease receiving group provisioning information.
+     * @return true if the change will disable the provisioning of groups to the Application
+     */
+    public boolean isDeactivatingGroupProvisioning() {
+        return isDeactivatingGroupProvisioning;
+    }
+
+    /**
      * Determine which capabilities were added or removed and set the results into the object.
      */
-    private void setChangeDetails() {
+    private void populateChangeDetails() {
+
+        boolean hasProfileChange = setChangeDetailsForAuthAndProvisioningProfiles();
+
+        boolean hasAttributeChange = setChangeDetailsForDesiredAttributes();
+
+        boolean hasOtherChange = (!hasProfileChange && !hasAttributeChange && !newContract.equals(oldContract));
+
+        boolean allProfilesRemoved = (
+                newContract.getEnabledProfiles().getAuthenticationProfiles().isEmpty()
+                && newContract.getEnabledProfiles().getProvisioningProfiles().isEmpty()
+        );
+
+        if (oldContract == null) {
+            changeType = ContractChangeType.Create;
+        }
+        else if (allProfilesRemoved) {
+            changeType = ContractChangeType.Terminate;
+        }
+        else if (hasProfileChange || hasAttributeChange) {
+            changeType = ContractChangeType.ProfileChange;
+        }
+        else if (hasOtherChange) {
+            changeType = ContractChangeType.MetadataRefresh;
+        }
+        else {
+            changeType = ContractChangeType.None;
+        }
+    }
+
+    private boolean setChangeDetailsForAuthAndProvisioningProfiles() {
         EnabledProfiles oldProfiles = (oldContract == null ? new EnabledProfiles(configuration) : oldContract.getEnabledProfiles());
         EnabledProfiles newProfiles = newContract.getEnabledProfiles();
 
@@ -177,34 +304,57 @@ public class ContractChange {
         this.provisioningProfilesRemoved = getRemovals(oldProfiles.getProvisioningProfiles(), newProfiles.getProvisioningProfiles());
 
         boolean hasProfileChange = (
-                !authenticationProfilesAdded.isEmpty()
-                || !authenticationProfilesRemoved.isEmpty()
-                || !provisioningProfilesAdded.isEmpty()
-                || !provisioningProfilesRemoved.isEmpty()
+                !authenticationProfilesAdded.isEmpty() ||
+                !authenticationProfilesRemoved.isEmpty() ||
+                !provisioningProfilesAdded.isEmpty() ||
+                !provisioningProfilesRemoved.isEmpty()
         );
 
-        boolean hasOtherChange = (!hasProfileChange && !newContract.equals(oldContract));
+        return hasProfileChange;
+    }
 
-        boolean allProfilesRemoved = (
-                newProfiles.getAuthenticationProfiles().isEmpty()
-                && newProfiles.getProvisioningProfiles().isEmpty()
+    private boolean setChangeDetailsForDesiredAttributes() {
+        // Determine which attributes are being added/removed.
+        SchemaGrammar schemaGrammar = newContract.getFastFedConfiguration().getPreferredSchemaGrammar();
+        DesiredAttributes.ForSchemaGrammar oldAttributes = oldContract.getConsolidatedDesiredAttributes().forSchemaGrammar(schemaGrammar);
+        DesiredAttributes.ForSchemaGrammar newAttributes = newContract.getConsolidatedDesiredAttributes().forSchemaGrammar(schemaGrammar);
+
+        Set<String> oldUserAttributes = new HashSet<>();
+        oldUserAttributes.addAll(oldAttributes.getRequiredUserAttributes());
+        oldUserAttributes.addAll(oldAttributes.getOptionalUserAttributes());
+
+        Set<String> oldGroupAttributes = new HashSet<>();
+        oldGroupAttributes.addAll(oldAttributes.getRequiredGroupAttributes());
+        oldGroupAttributes.addAll(oldAttributes.getOptionalGroupAttributes());
+
+        Set<String> newUserAttributes = new HashSet<>();
+        newUserAttributes.addAll(newAttributes.getRequiredUserAttributes());
+        newUserAttributes.addAll(newAttributes.getOptionalUserAttributes());
+
+        Set<String> newGroupAttributes = new HashSet<>();
+        newGroupAttributes.addAll(newAttributes.getRequiredGroupAttributes());
+        newGroupAttributes.addAll(newAttributes.getOptionalGroupAttributes());
+
+        this.userAttributesAdded = getAdditions(oldUserAttributes, newUserAttributes);
+        this.userAttributesRemoved = getRemovals(oldUserAttributes, newUserAttributes);
+        this.groupAttributesAdded = getAdditions(oldGroupAttributes, newGroupAttributes);
+        this.groupAttributesRemoved = getRemovals(oldGroupAttributes, newGroupAttributes);
+
+        // Determine if group provisioning is being activated/deactivated
+        boolean oldGroupAttributesExist = oldGroupAttributes != null && !oldGroupAttributes.isEmpty();
+        boolean newGroupAttributesExist = newGroupAttributes != null && !newGroupAttributes.isEmpty();
+        this.isActivatingGroupProvisioning = !oldGroupAttributesExist && newGroupAttributesExist;
+        this.isDeactivatingGroupProvisioning = oldGroupAttributesExist && !newGroupAttributesExist;
+
+        // Determine if the change contains any attribute changes
+        boolean hasAttributeChange = (
+                !userAttributesAdded.isEmpty() ||
+                !userAttributesRemoved.isEmpty() ||
+                !groupAttributesAdded.isEmpty() ||
+                !groupAttributesRemoved.isEmpty()
         );
 
-        if (oldContract == null) {
-            changeType = ContractChangeType.Create;
-        }
-        else if (allProfilesRemoved) {
-            changeType = ContractChangeType.Terminate;
-        }
-        else if (hasProfileChange) {
-            changeType = ContractChangeType.ProfileChange;
-        }
-        else if (hasOtherChange) {
-            changeType = ContractChangeType.MetadataRefresh;
-        }
-        else {
-            changeType = ContractChangeType.None;
-        }
+        return hasAttributeChange;
     }
 
     /**

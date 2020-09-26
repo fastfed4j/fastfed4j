@@ -1,7 +1,9 @@
 package org.fastfed4j.core.contract;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
+import org.fastfed4j.core.constants.AuthenticationProfile;
 import org.fastfed4j.core.constants.JsonMember;
+import org.fastfed4j.core.constants.ProvisioningProfile;
 import org.fastfed4j.core.exception.ErrorAccumulator;
 import org.fastfed4j.core.exception.FastFedSecurityException;
 import org.fastfed4j.core.exception.IncompatibleProvidersException;
@@ -10,10 +12,7 @@ import org.fastfed4j.core.json.JsonObject;
 import org.fastfed4j.core.metadata.*;
 import org.fastfed4j.core.util.CompatibilityUtils;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /**
  * A Contract is an implementation artifact that is not formally defined in the FastFed Specification. It represents
@@ -135,6 +134,47 @@ public class Contract extends Metadata {
      */
     public void setSigningAlgorithms(Set<String> signingAlgorithms) {
         this.signingAlgorithms = signingAlgorithms;
+    }
+
+    /**
+     * Returns a consolidated set of Desired Attributes aggregated across all the EnabledProfiles in the Contract.
+     * This can be useful in situations such as UX pages where the end-user wishes to view the complete set of
+     * attributes being released to an Application, regardless of which protocol is used to transmit them.
+     * <p>
+     * For example, both the Enterprise SAML and the Enterprise SCIM extensions define a set of DesiredAttributes
+     * to be transmitted. This method generates a consolidated view by iterating across all
+     * profiles in use and merging the DesiredAttributes specified by each into a single view.
+     * </p>
+     * @return consolidated set of Desired Attributes
+     */
+    public DesiredAttributes getConsolidatedDesiredAttributes() {
+        return getConsolidatedDesiredAttributes(enabledProfiles.getAllProfiles());
+    }
+
+    /**
+     * Returns a consolidated set of Desired Attributes aggregated across a set of specified Profiles. This variation
+     * of the method may be useful when the aggregated attributes are only desired for a subset of the Profiles.
+     * @return consolidated set of Desired Attributes
+     */
+    public DesiredAttributes getConsolidatedDesiredAttributes(Set<String> profiles) {
+        DesiredAttributes consolidatedAttributes = new DesiredAttributes(getFastFedConfiguration());
+
+        for (String profileUrn : profiles) {
+            if (profileUrn.equals(AuthenticationProfile.ENTERPRISE_SAML.getUrn())) {
+                consolidatedAttributes.addRequiredUserAttribute(getApplicationProvider().getEnterpriseSamlSubject());
+                consolidatedAttributes.merge(getApplicationProvider().getEnterpriseSamlDesiredAttributes());
+            }
+            else if (profileUrn.equals(ProvisioningProfile.ENTERPRISE_SCIM.getUrn())) {
+                consolidatedAttributes.merge(getApplicationProvider().getEnterpriseScimDesiredAttributes());
+            }
+            else {
+                // This logic exists so that if additional Profiles are added in the future,
+                // it will alert that this handler needs updating.
+                throw new RuntimeException("No handler for profile" + profileUrn);
+            }
+        }
+
+        return consolidatedAttributes;
     }
 
     /**

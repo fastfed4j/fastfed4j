@@ -1,13 +1,17 @@
 package org.fastfed4j.core.util;
 
+import org.fastfed4j.core.constants.JsonMember;
+import org.fastfed4j.core.constants.SchemaGrammar;
 import org.fastfed4j.core.exception.ErrorAccumulator;
 import org.fastfed4j.core.exception.FastFedSecurityException;
 
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 
 public class ValidationUtils {
 
@@ -110,4 +114,36 @@ public class ValidationUtils {
             );
         }
     }
+
+    public boolean validateSchemaGrammar(ErrorAccumulator errorAccumulator, String objectName, String schemaGrammarString) {
+        if (SchemaGrammar.isValid(schemaGrammarString)) {
+            return true;
+        }
+
+        StringBuilder builder = new StringBuilder();
+        builder.append("Invalid member of \"");
+        builder.append(objectName);
+        builder.append("\". Unrecognized schema grammar: \"");
+        builder.append(schemaGrammarString);
+        builder.append("\". ");
+        List<SchemaGrammar> schemaGrammars = Arrays.asList(SchemaGrammar.values());
+        if (schemaGrammars.size() == 1) {
+            builder.append("Expected: \"");
+            builder.append(schemaGrammars.get(0).toString());
+            builder.append("\"");
+        } else {
+            builder.append("Expected one of: ");
+            for (int i = 0; i < schemaGrammars.size(); i++) {
+                builder.append("\"");
+                builder.append(schemaGrammars.get(i).toString());
+                builder.append("\"");
+                if (i < (schemaGrammars.size() - 1)) {
+                    builder.append(", ");
+                }
+            }
+        }
+        errorAccumulator.add(builder.toString());
+        return false;
+    }
+
 }

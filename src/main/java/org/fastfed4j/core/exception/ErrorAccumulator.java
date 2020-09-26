@@ -17,7 +17,7 @@ public class ErrorAccumulator {
      * @param error new error to add
      */
     public void add(String error) {
-            errors.add(error);
+        errors.add(error);
     }
 
     /**
@@ -25,7 +25,7 @@ public class ErrorAccumulator {
      * @return all errors
      */
     public List<String> getErrors() {
-            return errors;
+        return errors;
     }
 
     /**
@@ -33,7 +33,7 @@ public class ErrorAccumulator {
      * @return true if errors have been added
      */
     public boolean hasErrors() {
-            return errors.size() > 0;
+        return errors.size() > 0;
     }
 
     /**

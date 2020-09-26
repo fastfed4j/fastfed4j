@@ -43,10 +43,13 @@ public class ApplicationProviderJson extends JsonSource {
             "       ]\n" +
             "     },\n" +
             "     \"urn:ietf:params:fastfed:1.0:authentication:saml:2.0:enterprise\": {\n" +
+            "       \"saml_subject\": {\n" +
+            "         \"urn:ietf:params:fastfed:1.0:schemas:scim:2.0\": \"emails[primary eq true].value\"" +
+            "       }\n" +
             "       \"desired_attributes\": {\n" +
             "         \"urn:ietf:params:fastfed:1.0:schemas:scim:2.0\": {\n" +
             "           \"required_user_attributes\": [\n" +
-            "            \"externalId\",\n" +
+            "             \"externalId\",\n" +
             "             \"userName\",\n" +
             "             \"emails[primary eq true].value\"\n" +
             "           ],\n" +
@@ -217,6 +220,9 @@ public class ApplicationProviderJson extends JsonSource {
             "       ]\n" +
             "     },\n" +
             "     \"urn:ietf:params:fastfed:1.0:authentication:saml:2.0:enterprise\": {\n" +
+            "       \"saml_subject\": {\n" +
+            "         \"urn:ietf:params:fastfed:1.0:schemas:scim:2.0\": \"emails[primary eq true].value\"" +
+            "       }\n" +
             "       \"desired_attributes\": {\n" +
             "         \"urn:ietf:params:fastfed:1.0:schemas:scim:2.0\": {\n" +
             "           \"required_user_attributes\": [\n" +
@@ -274,7 +280,7 @@ public class ApplicationProviderJson extends JsonSource {
             "           \"required_user_attributes\": [\n" +
             "             \"externalId\",\n" +
             "             \"userName\",\n" +
-            "            \"active\",\n" +
+            "             \"active\",\n" +
             "             \"emails[primary eq true].value\"\n" +
             "           ],\n" +
             "           \"optional_user_attributes\": [\n" +
@@ -371,6 +377,9 @@ public class ApplicationProviderJson extends JsonSource {
             "       ]\n" +
             "     },\n" +
             "     \"urn:ietf:params:fastfed:1.0:authentication:saml:2.0:enterprise\": {\n" +
+            "       \"saml_subject\": {\n" +
+            "         \"urn:ietf:params:fastfed:1.0:schemas:scim:2.0\": 1234 " +
+            "       }\n" +
             "       \"desired_attributes\": {\n" +
             "         \"urn:ietf:params:fastfed:1.0:schemas:scim:2.0\": {\n" +
             "           \"required_user_attributes\": [\n" +
@@ -497,11 +506,26 @@ public class ApplicationProviderJson extends JsonSource {
             "       ]\n" +
             "     },\n" +
             "     \"urn:ietf:params:fastfed:1.0:authentication:UNKNOWN:2.0:enterprise\": {\n" +
-            "       \"DUMMY_KEY\": \"DUMMY_VALUE\"" +
-            "     }," +
+            "       \"DUMMY_KEY\": \"DUMMY_VALUE\"\n" +
+            "     },\n" +
             "     \"urn:ietf:params:fastfed:1.0:authentication:saml:2.0:enterprise\": {\n" +
+            "       \"saml_subject\": {\n" +
+            "         \"urn:ietf:params:fastfed:1.0:schemas:scim:2.0\": \"emails[primary eq true].value\"" +
+            "         \"urn:ietf:params:fastfed:1.0:schemas:UNKNOWN:2.0\": \"emails[primary eq true].value\"" +
+            "       }\n" +
             "       \"desired_attributes\": {\n" +
             "         \"urn:ietf:params:fastfed:1.0:schemas:scim:2.0\": {\n" +
+            "           \"required_user_attributes\": [\n" +
+            "            \"externalId\",\n" +
+            "             \"userName\",\n" +
+            "             \"emails[primary eq true].value\"\n" +
+            "           ],\n" +
+            "           \"optional_user_attributes\": [\n" +
+            "             \"displayName\",\n" +
+            "             \"phoneNumbers[primary eq true].value\"\n" +
+            "           ]\n" +
+            "         }\n" +
+            "         \"urn:ietf:params:fastfed:1.0:schemas:UNKNOWN:2.0\": {\n" +
             "           \"required_user_attributes\": [\n" +
             "            \"externalId\",\n" +
             "             \"userName\",\n" +
@@ -515,15 +539,26 @@ public class ApplicationProviderJson extends JsonSource {
             "       }\n" +
             "     },\n" +
             "     \"urn:ietf:params:fastfed:1.0:provisioning:UNKNOWN:2.0:enterprise\": {\n" +
-            "       \"DUMMY_KEY\": \"DUMMY_VALUE\"" +
-            "     }," +
+            "       \"DUMMY_KEY\": \"DUMMY_VALUE\"\n" +
+            "     },\n" +
             "     \"urn:ietf:params:fastfed:1.0:provisioning:scim:2.0:enterprise\": {\n" +
             "       \"can_support_nested_groups\": true,\n" +
             "       \"max_group_membership_changes\": 500,\n" +
             "       \"desired_attributes\": {\n" +
-            "         \"urn:ietf:params:fastfed:1.0:schemas:scim:2.0\": {\n" +
-            "           \"DUMMY_KEY\": \"DUMMY_VALUE\"" +
-            "         }," +
+            "         \"urn:ietf:params:fastfed:1.0:schemas:DUMMY\": {\n" +
+            "           \"DUMMY_KEY\": \"DUMMY_VALUE\"\n" +
+            "         },\n" +
+            "         \"urn:ietf:params:fastfed:1.0:schemas:UNKNOWN:2.0\": {\n" +
+            "           \"required_user_attributes\": [\n" +
+            "            \"externalId\",\n" +
+            "             \"userName\",\n" +
+            "             \"emails[primary eq true].value\"\n" +
+            "           ],\n" +
+            "           \"optional_user_attributes\": [\n" +
+            "             \"displayName\",\n" +
+            "             \"phoneNumbers[primary eq true].value\"\n" +
+            "           ]\n" +
+            "         }\n" +
             "         \"urn:ietf:params:fastfed:1.0:schemas:scim:2.0\": {\n" +
             "           \"required_user_attributes\": [\n" +
             "             \"externalId\",\n" +

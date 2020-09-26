@@ -2,6 +2,7 @@ package org.fastfed4j.core.metadata;
 
 import org.fastfed4j.core.configuration.FastFedConfiguration;
 import org.fastfed4j.core.constants.JsonMember;
+import org.fastfed4j.core.constants.SchemaGrammar;
 import org.fastfed4j.core.exception.ErrorAccumulator;
 import org.fastfed4j.core.json.JsonObject;
 import org.fastfed4j.profile.ProfileRegistry;
@@ -83,7 +84,7 @@ public class Capabilities extends Metadata {
      * specified within the Capabilities.
      * @return authentication and provisioning profile URNs
      */
-    public Set<String> getAllProfiles() {
+    public Set<String> getAllProfileUrns() {
         Set<String> allProfiles = new HashSet<>();
         allProfiles.addAll(authenticationProfiles);
         allProfiles.addAll(provisioningProfiles);
@@ -96,10 +97,10 @@ public class Capabilities extends Metadata {
      * consulting the ProfileRegistry in the FastFedConfiguration.
      * @return authentication and provisioning profile URNs
      */
-    public Set<String> getAllKnownProfiles() {
+    public Set<String> getAllKnownProfileUrns() {
         ProfileRegistry registry = getFastFedConfiguration().getProfileRegistry();
         Set<String> result = new HashSet<>();
-        for (String profileUrn : getAllProfiles()) {
+        for (String profileUrn : getAllProfileUrns()) {
             if (registry.containsUrn(profileUrn)) {
                 result.add(profileUrn);
             }
@@ -127,10 +128,22 @@ public class Capabilities extends Metadata {
         json = json.unwrapObjectIfNeeded(JsonMember.CAPABILITIES);
         super.hydrateFromJson(json);
 
-        setAuthenticationProfiles( json.getNonNullableStringSet(JsonMember.AUTHENTICATION_PROFILES));
-        setProvisioningProfiles( json.getNonNullableStringSet(JsonMember.PROVISIONING_PROFILES));
-        setSchemaGrammars( json.getNonNullableStringSet(JsonMember.SCHEMA_GRAMMARS));
-        setSigningAlgorithms( json.getNonNullableStringSet(JsonMember.SIGNING_ALGORITHMS));
+        authenticationProfiles = json.getNonNullableStringSet(JsonMember.AUTHENTICATION_PROFILES);
+        provisioningProfiles = json.getNonNullableStringSet(JsonMember.PROVISIONING_PROFILES);
+        schemaGrammars = json.getNonNullableStringSet(JsonMember.SCHEMA_GRAMMARS);
+        signingAlgorithms = json.getNonNullableStringSet(JsonMember.SIGNING_ALGORITHMS);
+
+        //Ignore unrecognized schema grammars. They cause problems downstream when validating DesiredAttributes.
+        //Schema grammars are not intended to be easily pluggable or changed, because so much logic
+        //depends upon a shared consensus on the valid grammar.
+        //See more information in org/fastfed4j/core/constants/SchemaGrammar.java
+        Set<String> grammarsToRemove = new HashSet<>();
+        for (String schemaGrammarUrn : schemaGrammars) {
+            if (! SchemaGrammar.isValid(schemaGrammarUrn)) {
+                grammarsToRemove.add(schemaGrammarUrn);
+            }
+        }
+        schemaGrammars.removeAll(grammarsToRemove);
     }
 
     @Override

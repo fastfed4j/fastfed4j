@@ -7,10 +7,7 @@ import org.fastfed4j.core.constants.ProviderAuthenticationProtocol;
 import org.fastfed4j.core.constants.ProvisioningProfile;
 import org.fastfed4j.core.exception.ErrorAccumulator;
 import org.fastfed4j.core.json.JsonObject;
-import org.fastfed4j.core.metadata.ApplicationProviderMetadata;
-import org.fastfed4j.core.metadata.DesiredAttributes;
-import org.fastfed4j.core.metadata.Metadata;
-import org.fastfed4j.core.metadata.Oauth2JwtServiceMetadata;
+import org.fastfed4j.core.metadata.*;
 import org.fastfed4j.profile.Profile;
 import org.fastfed4j.profile.saml.enterprise.EnterpriseSAML;
 import org.fastfed4j.profile.scim.enterprise.EnterpriseSCIM;
@@ -135,6 +132,21 @@ public class ApplicationProvider extends Provider {
      */
     public EnterpriseSCIM.RegistrationResponseExtension getEnterpriseScimRegistrationResponseExtension() {
         return (EnterpriseSCIM.RegistrationResponseExtension)getRegistrationResponseExtension(ProvisioningProfile.ENTERPRISE_SCIM.getUrn());
+    }
+
+    /**
+     * When using the EnterpriseSAML profile, this method provides convenient access to the User Attribute
+     * to be populated in the SAML Subject, as defined in section 3.1.2 and section 4 of the FastFed
+     * Enterprise SAML Profile specification.
+     * @return userAttribute, or null if the EnterpriseSAML profile is not in use.
+     */
+    public UserAttribute getEnterpriseSamlSubject() {
+        UserAttribute returnVal = null;
+        EnterpriseSAML.ApplicationProviderMetadataExtension samlExtension = getEnterpriseSamlApplicationProviderMetadataExtension();
+        if (samlExtension != null) {
+            returnVal = samlExtension.getSamlSubject();
+        }
+        return returnVal;
     }
 
     /**
