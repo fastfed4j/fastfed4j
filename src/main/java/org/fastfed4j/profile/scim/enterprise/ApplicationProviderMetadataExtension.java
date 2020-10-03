@@ -21,16 +21,21 @@ import java.util.Set;
 class ApplicationProviderMetadataExtension extends Metadata {
 
     // As per Section 3.1.2 of the Enterprise SCIM Profile
-    private static final Set<String> REQUIRED_USER_ATTRIBUTES = Set.of(
+    private static final Set<String> MANDATORY_VALUES_IN_REQUIRED_USER_ATTRIBUTES = Set.of(
             "externalId",
             "userName",
             "active"
     );
 
     // As per Section 3.1.2 of the Enterprise SCIM Profile
-    private static final Set<String> REQUIRED_GROUP_ATTRIBUTES = Set.of(
+    private static final Set<String> MANDATORY_VALUES_IN_REQUIRED_GROUP_ATTRIBUTES = Set.of(
             "externalId",
             "displayName"
+    );
+
+    // As per Section 3.1.2 of the Enterprise SCIM Profile
+    private static final Set<String> MANDATORY_VALUES_IN_OPTIONAL_GROUP_ATTRIBUTES = Set.of(
+            "members"
     );
 
     private static final FormattingUtils formattingUtils = new FormattingUtils();
@@ -192,39 +197,48 @@ class ApplicationProviderMetadataExtension extends Metadata {
                 throw new RuntimeException("Missing handler for schema grammar " + schemaGrammar);
             }
 
-            Set<String> requiredUserAttributes = desiredAttributes.forSchemaGrammar(schemaGrammar).getRequiredUserAttributes();
-            Set<String> requiredGroupAttributes = desiredAttributes.forSchemaGrammar(schemaGrammar).getRequiredGroupAttributes();
-            Set<String> optionalGroupAttributes = desiredAttributes.forSchemaGrammar(schemaGrammar).getOptionalGroupAttributes();
+            Set<String> requiredUserAttributes = desiredAttributes.getForSchemaGrammar(schemaGrammar).getRequiredUserAttributes();
+            Set<String> requiredGroupAttributes = desiredAttributes.getForSchemaGrammar(schemaGrammar).getRequiredGroupAttributes();
+            Set<String> optionalGroupAttributes = desiredAttributes.getForSchemaGrammar(schemaGrammar).getOptionalGroupAttributes();
             boolean requiredGroupAttributesExist = requiredGroupAttributes != null && !requiredGroupAttributes.isEmpty();
             boolean optionalGroupAttributesExist = optionalGroupAttributes != null && !optionalGroupAttributes.isEmpty();
             boolean groupProvisioningEnabled = requiredGroupAttributesExist || optionalGroupAttributesExist;
 
-            inspectForRequiredAttributes(
+            inspectForMandatoryAttributes(
                     errorAccumulator,
                     schemaGrammar,
                     JsonMember.REQUIRED_USER_ATTRIBUTES,
-                    REQUIRED_USER_ATTRIBUTES,
+                    MANDATORY_VALUES_IN_REQUIRED_USER_ATTRIBUTES,
                     requiredUserAttributes
             );
 
             if (groupProvisioningEnabled) {
-                inspectForRequiredAttributes(
+                inspectForMandatoryAttributes(
                         errorAccumulator,
                         schemaGrammar,
                         JsonMember.REQUIRED_GROUP_ATTRIBUTES,
-                        REQUIRED_GROUP_ATTRIBUTES,
+                        MANDATORY_VALUES_IN_REQUIRED_GROUP_ATTRIBUTES,
                         requiredGroupAttributes
                 );
+
+                inspectForMandatoryAttributes(
+                        errorAccumulator,
+                        schemaGrammar,
+                        JsonMember.OPTIONAL_GROUP_ATTRIBUTES,
+                        MANDATORY_VALUES_IN_OPTIONAL_GROUP_ATTRIBUTES,
+                        optionalGroupAttributes
+                );
+
             }
 
         }
     }
 
-    private void inspectForRequiredAttributes(ErrorAccumulator errorAccumulator,
-                                              SchemaGrammar schemaGrammar,
-                                              String memberName,
-                                              Set<String> requiredAttributes,
-                                              Set<String> actualAttributes)
+    private void inspectForMandatoryAttributes(ErrorAccumulator errorAccumulator,
+                                               SchemaGrammar schemaGrammar,
+                                               String memberName,
+                                               Set<String> requiredAttributes,
+                                               Set<String> actualAttributes)
     {
         Set<String> missingValues = new HashSet<>();
         for (String value : requiredAttributes) {

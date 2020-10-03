@@ -15,6 +15,7 @@ import org.fastfed4j.test.data.*;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.HashSet;
 import java.util.Set;
 
 
@@ -31,7 +32,6 @@ public class MetadataValidationTest {
     private static final FastFedConfiguration config = FastFedConfiguration.DEFAULT;
     private static final FastFedConfiguration configWithNoProfileExtensions = getConfigWithNoProfileExtensions();
     private static final EnabledProfiles emptyProfiles = new EnabledProfiles(config);
-    private static final EnabledProfiles allProfiles = TestUtils.getAllEnabledProfiles();
 
     @Test
     public void testMissingJson() {
@@ -95,7 +95,7 @@ public class MetadataValidationTest {
         // First, use the default FastFedConfiguration which has awareness of all Profiles implemented by this library.
         // Tests should fail on both the SAML and SCIM profiles.
         ApplicationProviderMetadata appMetadata = new ApplicationProviderMetadata(config);
-        assertErrorCount(appMetadata, json, 2);;
+        assertErrorCount(appMetadata, json, 2);
 
         // Next, test with a FastFedConfiguration that has no Profiles in the registry.
         // Because unrecognized profiles are ignored when deserializing the JSON, this should result
@@ -160,7 +160,7 @@ public class MetadataValidationTest {
         ErrorAccumulator errorAccumulator = new ErrorAccumulator();
         ApplicationProviderMetadata appMetadata = ApplicationProviderMetadata.fromJson(config, ApplicationProviderJson.FULLY_POPULATED);
         DesiredAttributes.ForSchemaGrammar attributes =
-                appMetadata.getEnterpriseSamlExtension().getDesiredAttributes().forSchemaGrammar(config.getPreferredSchemaGrammar());
+                appMetadata.getEnterpriseSamlExtension().getDesiredAttributes().getForSchemaGrammar(config.getPreferredSchemaGrammar());
 
         // Test RequiredGroupAttributes
         attributes.setRequiredGroupAttributes(Set.of("displayName"));
@@ -169,7 +169,7 @@ public class MetadataValidationTest {
 
         // Reset
         errorAccumulator.clear();
-        attributes.setRequiredGroupAttributes(null);
+        attributes.setRequiredGroupAttributes(new HashSet<>());
 
         // Test OptionalGroupAttributes
         attributes.setOptionalGroupAttributes(Set.of("members"));
@@ -178,7 +178,7 @@ public class MetadataValidationTest {
 
         // Reset again and ensure validation passes
         errorAccumulator.clear();
-        attributes.setOptionalGroupAttributes(null);
+        attributes.setOptionalGroupAttributes(new HashSet<>());
         appMetadata.validate(errorAccumulator);
         Assert.assertEquals(0, errorAccumulator.getErrors().size());
     }
@@ -246,7 +246,7 @@ public class MetadataValidationTest {
         Set<String> requiredGroupAttributes = appMetadata.getEnterpriseScimExtension().getDesiredAttributes().getRequiredGroupAttributes();
         Set<String> optionalGroupAttributes = appMetadata.getEnterpriseScimExtension().getDesiredAttributes().getOptionalGroupAttributes();
         requiredGroupAttributes.clear();
-        optionalGroupAttributes.addAll(Set.of("externalId", "displayName"));
+        optionalGroupAttributes.addAll(Set.of("externalId", "displayName", "members"));
 
         // Ensure validation fails
         ErrorAccumulator errorAccumulator = new ErrorAccumulator();
@@ -255,11 +255,19 @@ public class MetadataValidationTest {
 
         // Shift the attributes back and ensure validation succeeds
         requiredGroupAttributes.addAll(Set.of("externalId", "displayName"));
-        optionalGroupAttributes.clear();
+        optionalGroupAttributes.addAll(Set.of("members"));
         errorAccumulator.clear();
 
         appMetadata.validate(errorAccumulator);
         Assert.assertEquals(0, errorAccumulator.getErrors().size());
+
+        // Remove the "members" field from the Optional category and ensure validation fails.
+        optionalGroupAttributes.clear();
+        errorAccumulator.clear();
+        appMetadata.validate(errorAccumulator);
+        Assert.assertEquals(1, errorAccumulator.getErrors().size());
+
+
     }
 
     @Test
@@ -324,7 +332,7 @@ public class MetadataValidationTest {
                 builder.append("Unexpected number of validation errors for ").append(metadata.getClass().getName());
                 builder.append(" (expected ").append(expectedErrorCount).append(", ");
                 builder.append("received ").append(actualErrorCount).append(")\n");
-                ex.getErrorAccumulator().getErrors().stream().forEach(error -> builder.append("  ").append(error).append("\n"));
+                ex.getErrorAccumulator().getErrors().forEach(error -> builder.append("  ").append(error).append("\n"));
                 throw new AssertionError(builder.toString());
             }
         }

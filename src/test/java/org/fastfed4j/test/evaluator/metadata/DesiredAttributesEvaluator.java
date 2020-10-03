@@ -31,8 +31,8 @@ public class DesiredAttributesEvaluator extends MetadataEvaluator {
 
         // Then, for each schema grammar, execute the operation on the contents.
         for (SchemaGrammar grammar : grammarList1) {
-            DesiredAttributes.ForSchemaGrammar desiredAttributes1 = specimen1.forSchemaGrammar(grammar);
-            DesiredAttributes.ForSchemaGrammar desiredAttributes2 = specimen2 == null ? null : specimen2.forSchemaGrammar(grammar);
+            DesiredAttributes.ForSchemaGrammar desiredAttributes1 = specimen1.getForSchemaGrammar(grammar);
+            DesiredAttributes.ForSchemaGrammar desiredAttributes2 = specimen2 == null ? null : specimen2.getForSchemaGrammar(grammar);
             performOperation(operation, desiredAttributes1, desiredAttributes2, "requiredUserAttributes");
             performOperation(operation, desiredAttributes1, desiredAttributes2, "optionalUserAttributes");
             performOperation(operation, desiredAttributes1, desiredAttributes2, "requiredGroupAttributes");

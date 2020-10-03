@@ -4,13 +4,11 @@ import org.fastfed4j.core.configuration.FastFedConfiguration;
 import org.fastfed4j.core.constants.SchemaGrammar;
 import org.fastfed4j.core.exception.FastFedSecurityException;
 import org.fastfed4j.core.exception.InvalidChangeException;
-import org.fastfed4j.core.metadata.ApplicationProviderMetadata;
-import org.fastfed4j.core.metadata.Capabilities;
-import org.fastfed4j.core.metadata.DesiredAttributes;
-import org.fastfed4j.core.metadata.IdentityProviderMetadata;
+import org.fastfed4j.core.metadata.*;
 import org.fastfed4j.core.util.CompatibilityUtils;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -98,7 +96,7 @@ public class ContractChange {
         //contract would be changed outside the context of a FastFed Handshake.
         switch (contractChange.getChangeType()) {
             case None:
-            case MetadataRefresh:
+            case MetadataChange:
                 break;
             default:
                 throw new FastFedSecurityException(
@@ -115,7 +113,7 @@ public class ContractChange {
      * @param oldContract prior version of the contract
      * @throws InvalidChangeException if the new contract would cause a prohibited change
      */
-    public ContractChange(Contract newContract, Contract oldContract) {
+    public ContractChange(Contract oldContract, Contract newContract) {
         Objects.requireNonNull(newContract);
         this.configuration = newContract.getFastFedConfiguration();
         this.oldContract = oldContract;
@@ -266,32 +264,51 @@ public class ContractChange {
      */
     private void populateChangeDetails() {
 
-        boolean hasProfileChange = setChangeDetailsForAuthAndProvisioningProfiles();
+        boolean hasChange = !newContract.equals(oldContract);
 
-        boolean hasAttributeChange = setChangeDetailsForDesiredAttributes();
+        boolean hasProfilesAddedOrRemoved = setChangeDetailsForAuthAndProvisioningProfiles();
 
-        boolean hasOtherChange = (!hasProfileChange && !hasAttributeChange && !newContract.equals(oldContract));
+        boolean exposesNewAttributesToApplication = setChangeDetailsForDesiredAttributes();
 
-        boolean allProfilesRemoved = (
-                newContract.getEnabledProfiles().getAuthenticationProfiles().isEmpty()
-                && newContract.getEnabledProfiles().getProvisioningProfiles().isEmpty()
-        );
+        boolean hasOtherProfileChange = determineIfProfilesChanged();
+
+        boolean hasOtherMetadataChange = (hasChange && !hasProfilesAddedOrRemoved && !hasOtherProfileChange);
+
+        boolean allProfilesRemoved = hasEnabledProfiles(oldContract) && !hasEnabledProfiles(newContract);
 
         if (oldContract == null) {
+
             changeType = ContractChangeType.Create;
         }
         else if (allProfilesRemoved) {
             changeType = ContractChangeType.Terminate;
         }
-        else if (hasProfileChange || hasAttributeChange) {
+        else if (hasProfilesAddedOrRemoved || hasOtherProfileChange) {
             changeType = ContractChangeType.ProfileChange;
         }
-        else if (hasOtherChange) {
-            changeType = ContractChangeType.MetadataRefresh;
+        else if (hasOtherMetadataChange) {
+            changeType = ContractChangeType.MetadataChange;
         }
         else {
             changeType = ContractChangeType.None;
         }
+    }
+
+    private boolean hasEnabledProfiles(Contract contract) {
+        if (contract == null) {
+            return false;
+        }
+        return !contract.getEnabledProfiles().getAuthenticationProfiles().isEmpty()
+               || !contract.getEnabledProfiles().getProvisioningProfiles().isEmpty();
+    }
+
+    private boolean determineIfProfilesChanged() {
+        Map<String, Metadata> oldAppProfiles = oldContract == null ? null : oldContract.getApplicationProvider().getAllApplicationProviderMetadataExtensions();
+        Map<String, Metadata> newAppProfiles = newContract.getApplicationProvider().getAllApplicationProviderMetadataExtensions();
+        Map<String, Metadata> oldIdpProfiles = oldContract == null ? null : oldContract.getIdentityProvider().getAllIdentityProviderMetadataExtensions();
+        Map<String, Metadata> newIdpProfiles = newContract.getIdentityProvider().getAllIdentityProviderMetadataExtensions();
+
+        return (!newAppProfiles.equals(oldAppProfiles) || !newIdpProfiles.equals(oldIdpProfiles));
     }
 
     private boolean setChangeDetailsForAuthAndProvisioningProfiles() {
@@ -316,9 +333,25 @@ public class ContractChange {
     private boolean setChangeDetailsForDesiredAttributes() {
         // Determine which attributes are being added/removed.
         SchemaGrammar schemaGrammar = newContract.getFastFedConfiguration().getPreferredSchemaGrammar();
-        DesiredAttributes.ForSchemaGrammar oldAttributes = oldContract.getConsolidatedDesiredAttributes().forSchemaGrammar(schemaGrammar);
-        DesiredAttributes.ForSchemaGrammar newAttributes = newContract.getConsolidatedDesiredAttributes().forSchemaGrammar(schemaGrammar);
 
+        // Get the new attributes. Transform nulls into empty values.
+        DesiredAttributes.ForSchemaGrammar newAttributes = newContract.getConsolidatedDesiredAttributes().getForSchemaGrammar(schemaGrammar);
+        if (newAttributes == null) {
+            newAttributes = new DesiredAttributes.ForSchemaGrammar(schemaGrammar); //Empty value
+        }
+
+        // Get the old attributes. Transform nulls into empty values.
+        DesiredAttributes.ForSchemaGrammar oldAttributes;
+        if (oldContract == null) {
+            oldAttributes = new DesiredAttributes.ForSchemaGrammar(schemaGrammar); //Empty value
+        } else {
+            oldAttributes = oldContract.getConsolidatedDesiredAttributes().getForSchemaGrammar(schemaGrammar);
+            if (oldAttributes == null) {
+                oldAttributes = new DesiredAttributes.ForSchemaGrammar(schemaGrammar); //Empty value
+            }
+        }
+
+        //Merge the Required/Optional categories into a single set
         Set<String> oldUserAttributes = new HashSet<>();
         oldUserAttributes.addAll(oldAttributes.getRequiredUserAttributes());
         oldUserAttributes.addAll(oldAttributes.getOptionalUserAttributes());
@@ -335,6 +368,7 @@ public class ContractChange {
         newGroupAttributes.addAll(newAttributes.getRequiredGroupAttributes());
         newGroupAttributes.addAll(newAttributes.getOptionalGroupAttributes());
 
+        // Determine which attributes are being added/removed
         this.userAttributesAdded = getAdditions(oldUserAttributes, newUserAttributes);
         this.userAttributesRemoved = getRemovals(oldUserAttributes, newUserAttributes);
         this.groupAttributesAdded = getAdditions(oldGroupAttributes, newGroupAttributes);

@@ -168,7 +168,7 @@ class ApplicationProviderMetadataExtension extends Metadata {
                     schemaGrammar,
                     JsonMember.REQUIRED_USER_ATTRIBUTES,
                     VALID_SAML_ATTRIBUTES,
-                    desiredAttributes.forSchemaGrammar(schemaGrammar).getRequiredUserAttributes()
+                    desiredAttributes.getForSchemaGrammar(schemaGrammar).getRequiredUserAttributes()
             );
 
             inspectForInvalidAttributes(
@@ -176,7 +176,7 @@ class ApplicationProviderMetadataExtension extends Metadata {
                     schemaGrammar,
                     JsonMember.OPTIONAL_USER_ATTRIBUTES,
                     VALID_SAML_ATTRIBUTES,
-                    desiredAttributes.forSchemaGrammar(schemaGrammar).getOptionalUserAttributes()
+                    desiredAttributes.getForSchemaGrammar(schemaGrammar).getOptionalUserAttributes()
             );
         }
     }
@@ -205,8 +205,8 @@ class ApplicationProviderMetadataExtension extends Metadata {
      */
     private void ensureNoGroupAttributesAreSet(ErrorAccumulator errorAccumulator, DesiredAttributes desiredAttributes) {
         for (SchemaGrammar schemaGrammar : desiredAttributes.getAllSchemaGrammars()) {
-            Set<String> requiredGroupAttributes = desiredAttributes.forSchemaGrammar(schemaGrammar).getRequiredGroupAttributes();
-            Set<String> optionalGroupAttributes = desiredAttributes.forSchemaGrammar(schemaGrammar).getOptionalGroupAttributes();
+            Set<String> requiredGroupAttributes = desiredAttributes.getForSchemaGrammar(schemaGrammar).getRequiredGroupAttributes();
+            Set<String> optionalGroupAttributes = desiredAttributes.getForSchemaGrammar(schemaGrammar).getOptionalGroupAttributes();
             if (containsValues(requiredGroupAttributes)) {
                 errorAccumulator.add(
                         "Illegal value for \"" +
@@ -237,11 +237,12 @@ class ApplicationProviderMetadataExtension extends Metadata {
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
         ApplicationProviderMetadataExtension that = (ApplicationProviderMetadataExtension) o;
-        return Objects.equals(desiredAttributes, that.desiredAttributes);
+        return Objects.equals(samlSubject, that.samlSubject) &&
+                Objects.equals(desiredAttributes, that.desiredAttributes);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), desiredAttributes);
+        return Objects.hash(super.hashCode(), samlSubject, desiredAttributes);
     }
 }

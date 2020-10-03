@@ -20,7 +20,7 @@ public enum ContractChangeType {
          * <p>Most often occurs during a FastFed background refresh, as defined in section 4.1.5
          * of the FastFed Core specification.</p>
          */
-        MetadataRefresh,
+        MetadataChange,
 
         /**
          * Authentication or provisioning profiles were changed. This includes activating a new profile,

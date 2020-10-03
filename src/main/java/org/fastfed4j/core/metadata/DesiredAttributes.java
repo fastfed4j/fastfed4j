@@ -13,6 +13,9 @@ import org.fastfed4j.core.json.JsonObject;
  */
 public class DesiredAttributes extends Metadata {
 
+    private static final String SCIM_CORE_USER_SCHEMA = "urn:ietf:params:scim:schemas:core:2.0:User:";
+    private static final String SCIM_CORE_GROUP_SCHEMA = "urn:ietf:params:scim:schemas:core:2.0:User:";
+
     private final Map<SchemaGrammar, ForSchemaGrammar> desiredAttributes= new HashMap<>();
     private final SchemaGrammar preferredSchemaGrammar;
 
@@ -22,14 +25,15 @@ public class DesiredAttributes extends Metadata {
      * This class represents one element of that array, containing the desired attributes for the
      * specific grammar.
      */
-    public class ForSchemaGrammar {
+    public static class ForSchemaGrammar {
         private SchemaGrammar schemaGrammar;
-        private Set<String> requiredUserAttributes;
-        private Set<String> optionalUserAttributes;
-        private Set<String> requiredGroupAttributes;
-        private Set<String> optionalGroupAttributes;
+        private Set<String> requiredUserAttributes = new HashSet<>();
+        private Set<String> optionalUserAttributes = new HashSet<>();
+        private Set<String> requiredGroupAttributes = new HashSet<>();
+        private Set<String> optionalGroupAttributes = new HashSet<>();
 
-        public ForSchemaGrammar() {
+        public ForSchemaGrammar(SchemaGrammar schemaGrammar) {
+            this.schemaGrammar = schemaGrammar;
         }
 
         public ForSchemaGrammar(ForSchemaGrammar other) {
@@ -43,6 +47,7 @@ public class DesiredAttributes extends Metadata {
         public SchemaGrammar getSchemaGrammar() { return schemaGrammar; }
 
         public void setSchemaGrammar(SchemaGrammar schemaGrammar) {
+            Objects.requireNonNull(schemaGrammar, "schemaGrammar must not be null");
             this.schemaGrammar = schemaGrammar;
         }
 
@@ -51,6 +56,7 @@ public class DesiredAttributes extends Metadata {
         }
 
         public void setRequiredUserAttributes(Set<String> requiredUserAttributes) {
+            Objects.requireNonNull(requiredUserAttributes, "requiredUserAttributes must not be null");
             this.requiredUserAttributes = requiredUserAttributes;
         }
 
@@ -59,6 +65,7 @@ public class DesiredAttributes extends Metadata {
         }
 
         public void setOptionalUserAttributes(Set<String> optionalUserAttributes) {
+            Objects.requireNonNull(optionalUserAttributes, "optionalUserAttributes must not be null");
             this.optionalUserAttributes = optionalUserAttributes;
         }
 
@@ -67,6 +74,7 @@ public class DesiredAttributes extends Metadata {
         }
 
         public void setRequiredGroupAttributes(Set<String> requiredGroupAttributes) {
+            Objects.requireNonNull(requiredGroupAttributes, "requiredGroupAttributes must not be null");
             this.requiredGroupAttributes = requiredGroupAttributes;
         }
 
@@ -75,6 +83,7 @@ public class DesiredAttributes extends Metadata {
         }
 
         public void setOptionalGroupAttributes(Set<String> optionalGroupAttributes) {
+            Objects.requireNonNull(optionalGroupAttributes, "optionalGroupAttributes must not be null");
             this.optionalGroupAttributes = optionalGroupAttributes;
         }
 
@@ -123,40 +132,56 @@ public class DesiredAttributes extends Metadata {
      * to appear in both the required & optional settings, the duplicate is removed from the optional settings.
      * @param other object to merge
      */
-    public void merge(DesiredAttributes other) {
-        for (SchemaGrammar schemaGrammar : desiredAttributes.keySet()) {
+    public void addAll(DesiredAttributes other) {
+        for (SchemaGrammar schemaGrammar : other.desiredAttributes.keySet()) {
+            if (! this.desiredAttributes.containsKey(schemaGrammar)) {
+                this.desiredAttributes.put(schemaGrammar, new ForSchemaGrammar(schemaGrammar));
+            }
             DesiredAttributes.ForSchemaGrammar thisValue = this.desiredAttributes.get(schemaGrammar);
             DesiredAttributes.ForSchemaGrammar otherValue = other.desiredAttributes.get(schemaGrammar);
-            thisValue.requiredUserAttributes.addAll( other.getRequiredUserAttributes());
-            thisValue.optionalUserAttributes.addAll( other.getOptionalUserAttributes());
-            thisValue.requiredGroupAttributes.addAll( other.getRequiredGroupAttributes());
-            thisValue.optionalGroupAttributes.addAll( other.getOptionalGroupAttributes());
+            thisValue.requiredUserAttributes.addAll( otherValue.getRequiredUserAttributes());
+            thisValue.optionalUserAttributes.addAll( otherValue.getOptionalUserAttributes());
+            thisValue.requiredGroupAttributes.addAll( otherValue.getRequiredGroupAttributes());
+            thisValue.optionalGroupAttributes.addAll( otherValue.getOptionalGroupAttributes());
 
-            for (String attribute : thisValue.optionalUserAttributes) {
-                if (thisValue.requiredUserAttributes.contains(attribute))
-                    thisValue.optionalUserAttributes.remove(attribute);
-            }
-            for (String attribute : thisValue.optionalGroupAttributes) {
-                if (thisValue.requiredGroupAttributes.contains(attribute))
-                    thisValue.optionalGroupAttributes.remove(attribute);
-            }
+            removeDuplicateAttributesFromSet(thisValue.requiredUserAttributes, thisValue.optionalUserAttributes);
+            removeDuplicateAttributesFromSet(thisValue.requiredGroupAttributes, thisValue.optionalGroupAttributes);
         }
     }
 
     /**
      * Adds a User Attribute into the Required User Attributes.
-     * @param userAttribute
+     * @param userAttribute the user attribute to add to the set
      */
     public void addRequiredUserAttribute(UserAttribute userAttribute) {
         if (userAttribute == null)
             return;
 
         for (SchemaGrammar schemaGrammar : userAttribute.getAllSchemaGrammars()) {
-            String value = userAttribute.forSchemaGrammar(schemaGrammar);
-            if (desiredAttributes.containsKey(schemaGrammar)) {
-                desiredAttributes.get(schemaGrammar).requiredUserAttributes.add(value);
+            if (! this.desiredAttributes.containsKey(schemaGrammar)) {
+                this.desiredAttributes.put(schemaGrammar, new ForSchemaGrammar(schemaGrammar));
             }
+            Set<String> requiredUserAttributes = desiredAttributes.get(schemaGrammar).getRequiredUserAttributes();
+            Set<String> optionalUserAttributes = desiredAttributes.get(schemaGrammar).getOptionalUserAttributes();
+            String newValue = userAttribute.forSchemaGrammar(schemaGrammar);
+            requiredUserAttributes.add(newValue);
+            removeDuplicateAttributesFromSet(requiredUserAttributes, optionalUserAttributes);
         }
+    }
+
+    /**
+     * If an attribute exists in both the required & optional collection, the duplicate is
+     * removed from the optional category. The contents of the sets are mutated by this method.
+     * @param requiredAttributes required attributes
+     * @param optionalAttributes optional attributes
+     */
+    public void removeDuplicateAttributesFromSet(Set<String> requiredAttributes, Set<String> optionalAttributes) {
+        Set<String> itemsToRemove = new HashSet<>();
+        for (String item : optionalAttributes) {
+            if (requiredAttributes.contains(item))
+                itemsToRemove.add(item);
+        }
+        optionalAttributes.removeAll(itemsToRemove);
     }
 
     /**
@@ -183,15 +208,14 @@ public class DesiredAttributes extends Metadata {
      * Gets the desired attributes as represented in a particular schema grammar.
      * @return desired attributes as represented in the schema grammar
      */
-    public ForSchemaGrammar forSchemaGrammar(SchemaGrammar schemaGrammar) {
+    public ForSchemaGrammar getForSchemaGrammar(SchemaGrammar schemaGrammar) {
         return desiredAttributes.get(schemaGrammar);
     }
 
     /**
      * Adds a new instance of DesiredAttributes.ForSchemaGrammar into the DesiredAttributes.
-     * @return desired attributes as represented in the schema grammar
      */
-    public void put(ForSchemaGrammar forSchemaGrammar) {
+    public void setForSchemaGrammar(ForSchemaGrammar forSchemaGrammar) {
         desiredAttributes.put(forSchemaGrammar.getSchemaGrammar(), forSchemaGrammar);
     }
 
@@ -208,7 +232,7 @@ public class DesiredAttributes extends Metadata {
      * @return required user attributes
      */
     public Set<String> getRequiredUserAttributes() {
-        return forSchemaGrammar(preferredSchemaGrammar).getRequiredUserAttributes();
+        return getForSchemaGrammar(preferredSchemaGrammar).getRequiredUserAttributes();
     }
 
     /**
@@ -217,7 +241,7 @@ public class DesiredAttributes extends Metadata {
      * @return optional user attributes
      */
     public Set<String> getOptionalUserAttributes() {
-        return forSchemaGrammar(preferredSchemaGrammar).getOptionalUserAttributes();
+        return getForSchemaGrammar(preferredSchemaGrammar).getOptionalUserAttributes();
     }
 
     /**
@@ -226,7 +250,7 @@ public class DesiredAttributes extends Metadata {
      * @return required group attributes
      */
     public Set<String> getRequiredGroupAttributes() {
-        return forSchemaGrammar(preferredSchemaGrammar).getRequiredGroupAttributes();
+        return getForSchemaGrammar(preferredSchemaGrammar).getRequiredGroupAttributes();
     }
 
     /**
@@ -235,7 +259,47 @@ public class DesiredAttributes extends Metadata {
      * @return optional group attributes
      */
     public Set<String> getOptionalGroupAttributes() {
-        return forSchemaGrammar(preferredSchemaGrammar).getOptionalGroupAttributes();
+        return getForSchemaGrammar(preferredSchemaGrammar).getOptionalGroupAttributes();
+    }
+
+    /**
+     * Convenience method to set the required user attributes expressed in the
+     * preferred schema grammar, as specified in the FastFedConfiguration.
+     * @param requiredUserAttributes set of required user attributes. Null values are prohibited. The absence of attributes is represented by using an empty Set.
+     */
+    public void setRequiredUserAttributes(Set<String> requiredUserAttributes) {
+        Objects.requireNonNull(requiredUserAttributes, "requiredUserAttributes must not be null");
+        getForSchemaGrammar(preferredSchemaGrammar).setRequiredUserAttributes(requiredUserAttributes);
+    }
+
+    /**
+     * Convenience method to set the optional user attributes expressed in the
+     * preferred schema grammar, as specified in the FastFedConfiguration.
+     * @param optionalUserAttributes set of optional user attributes. Null values are prohibited. The absence of attributes is represented by using an empty Set.
+     */
+    public void setOptionalUserAttributes(Set<String> optionalUserAttributes) {
+        Objects.requireNonNull(optionalUserAttributes, "optionalUserAttributes must not be null");
+        getForSchemaGrammar(preferredSchemaGrammar).setOptionalUserAttributes(optionalUserAttributes);
+    }
+
+    /**
+     * Convenience method to set the required group attributes expressed in the
+     * preferred schema grammar, as specified in the FastFedConfiguration.
+     * @param requiredGroupAttributes set of required group attributes. Null values are prohibited. The absence of attributes is represented by using an empty Set.
+     */
+    public void setRequiredGroupAttributes(Set<String> requiredGroupAttributes) {
+        Objects.requireNonNull(requiredGroupAttributes, "requiredGroupAttributes must not be null");
+        getForSchemaGrammar(preferredSchemaGrammar).setRequiredGroupAttributes(requiredGroupAttributes);
+    }
+
+    /**
+     * Convenience method to set the optional group attributes expressed in the
+     * preferred schema grammar, as specified in the FastFedConfiguration.
+     * @param optionalGroupAttributes set of optional group attributes. Null values are prohibited. The absence of attributes is represented by using an empty Set.
+     */
+    public void setOptionalGroupAttributes(Set<String> optionalGroupAttributes) {
+        Objects.requireNonNull(optionalGroupAttributes, "optionalGroupAttributes must not be null");
+        getForSchemaGrammar(preferredSchemaGrammar).setOptionalGroupAttributes(optionalGroupAttributes);
     }
 
     @Override
@@ -271,12 +335,15 @@ public class DesiredAttributes extends Metadata {
             SchemaGrammar schemaGrammar = SchemaGrammar.fromString(schemaGrammarString);
             JsonObject schemaJson = json.getObject(schemaGrammarString);
 
-            DesiredAttributes.ForSchemaGrammar forSchema = new DesiredAttributes.ForSchemaGrammar();
-            forSchema.setSchemaGrammar(schemaGrammar);
-            forSchema.setRequiredUserAttributes( schemaJson.getStringSet(JsonMember.REQUIRED_USER_ATTRIBUTES));
-            forSchema.setOptionalUserAttributes( schemaJson.getStringSet(JsonMember.OPTIONAL_USER_ATTRIBUTES));
-            forSchema.setRequiredGroupAttributes( schemaJson.getStringSet(JsonMember.REQUIRED_GROUP_ATTRIBUTES));
-            forSchema.setOptionalGroupAttributes( schemaJson.getStringSet(JsonMember.OPTIONAL_GROUP_ATTRIBUTES));
+            DesiredAttributes.ForSchemaGrammar forSchema = new DesiredAttributes.ForSchemaGrammar(schemaGrammar);
+            forSchema.setRequiredUserAttributes( normalize(schemaJson.getStringSet(JsonMember.REQUIRED_USER_ATTRIBUTES)));
+            forSchema.setOptionalUserAttributes( normalize(schemaJson.getStringSet(JsonMember.OPTIONAL_USER_ATTRIBUTES)));
+            forSchema.setRequiredGroupAttributes( normalize(schemaJson.getStringSet(JsonMember.REQUIRED_GROUP_ATTRIBUTES)));
+            forSchema.setOptionalGroupAttributes( normalize(schemaJson.getStringSet(JsonMember.OPTIONAL_GROUP_ATTRIBUTES)));
+
+            removeDuplicateAttributesFromSet(forSchema.getRequiredUserAttributes(), forSchema.getOptionalUserAttributes());
+            removeDuplicateAttributesFromSet(forSchema.getRequiredGroupAttributes(), forSchema.getOptionalGroupAttributes());
+
             this.desiredAttributes.put(schemaGrammar, forSchema);
         }
     }
@@ -285,7 +352,7 @@ public class DesiredAttributes extends Metadata {
     public void validate(ErrorAccumulator errorAccumulator) {
         for (SchemaGrammar schemaGrammar : desiredAttributes.keySet()) {
             String jsonPath = schemaGrammar.toString() + ".";
-            DesiredAttributes.ForSchemaGrammar forSchema = forSchemaGrammar(schemaGrammar);
+            DesiredAttributes.ForSchemaGrammar forSchema = getForSchemaGrammar(schemaGrammar);
             validateRequiredStringCollection(errorAccumulator, jsonPath + JsonMember.REQUIRED_USER_ATTRIBUTES, forSchema.requiredUserAttributes);
             validateOptionalStringCollection(errorAccumulator, jsonPath + JsonMember.OPTIONAL_USER_ATTRIBUTES, forSchema.optionalUserAttributes);
             validateOptionalStringCollection(errorAccumulator, jsonPath + JsonMember.REQUIRED_GROUP_ATTRIBUTES, forSchema.requiredGroupAttributes);
@@ -293,35 +360,35 @@ public class DesiredAttributes extends Metadata {
         }
     }
 
-    private boolean validateSchemaGrammar(ErrorAccumulator errorAccumulator, String schemaGrammarString) {
-        if (SchemaGrammar.isValid(schemaGrammarString)) {
-            return true;
-        }
+    /**
+     * Normalizes the contents of a Set of attributes.
+     * Specifically, converts null values to an empty list (the FastFed spec requires they be treated
+     * equivalently) and removes the optional SCIM fully qualified name prefix if included for the the core schema.
+     */
+    private Set<String> normalize(Set<String> input) {
+        Set<String> output = new HashSet<>();
+        if (input == null)
+            return output;
 
-        StringBuilder builder = new StringBuilder();
-        builder.append("Invalid member of \"");
-        builder.append(getFullyQualifiedName(JsonMember.DESIRED_ATTRIBUTES));
-        builder.append("\". Unrecognized schema grammar: \"");
-        builder.append(schemaGrammarString);
-        builder.append("\". ");
-        List<SchemaGrammar> schemaGrammars = Arrays.asList(SchemaGrammar.values());
-        if (schemaGrammars.size() == 1) {
-            builder.append("Expected: \"");
-            builder.append(schemaGrammars.get(0).toString());
-            builder.append("\"");
-        } else {
-            builder.append("Expected one of: ");
-            for (int i = 0; i < schemaGrammars.size(); i++) {
-                builder.append("\"");
-                builder.append(schemaGrammars.get(i).toString());
-                builder.append("\"");
-                if (i < (schemaGrammars.size() - 1)) {
-                    builder.append(", ");
-                }
-            }
+        for (String element : input) {
+            if (element == null) continue;
+            element = element.trim();
+            element = removePrefix(element, SCIM_CORE_USER_SCHEMA);
+            element = removePrefix(element, SCIM_CORE_GROUP_SCHEMA);
+            output.add(element);
         }
-        errorAccumulator.add(builder.toString());
-        return false;
+        return output;
+    }
+
+    private String removePrefix(String input, String prefix) {
+        Objects.requireNonNull(input, "input must not be null");
+        Objects.requireNonNull(prefix, "prefix must not be null");
+        if (input.startsWith(prefix)) {
+            return input.substring(prefix.length());
+        }
+        else {
+            return input;
+        }
     }
 
     @Override

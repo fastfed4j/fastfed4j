@@ -108,7 +108,7 @@ public class ExampleUsage {
         Contract proposedContract = new Contract(idpMetadata, newAppMetadata);
 
         // Now, the IdP can compare the two contracts.
-        ContractChange change = new ContractChange(proposedContract, contract);
+        ContractChange change = new ContractChange(contract, proposedContract);
         System.out.println("\nContract Change\n---------------------");
         System.out.println("ChangeType=" + change.getChangeType().toString());
         System.out.println("AuthenticationProfilesAdded=" + change.getAuthenticationProfilesAdded());
@@ -133,7 +133,7 @@ public class ExampleUsage {
         Contract proposedContractTermination = new Contract(idpMetadata, terminateMetadata);
 
         // Now, the IdP can compare the two contracts & observe the termination request.
-        ContractChange termination = new ContractChange(proposedContractTermination, contract);
+        ContractChange termination = new ContractChange(contract, proposedContractTermination);
         System.out.println("\nContract Termination\n---------------------");
         System.out.println("ChangeType=" + termination.getChangeType().toString());
         System.out.println("AuthenticationProfilesAdded=" + termination.getAuthenticationProfilesAdded());

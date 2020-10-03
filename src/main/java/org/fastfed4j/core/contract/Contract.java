@@ -162,10 +162,10 @@ public class Contract extends Metadata {
         for (String profileUrn : profiles) {
             if (profileUrn.equals(AuthenticationProfile.ENTERPRISE_SAML.getUrn())) {
                 consolidatedAttributes.addRequiredUserAttribute(getApplicationProvider().getEnterpriseSamlSubject());
-                consolidatedAttributes.merge(getApplicationProvider().getEnterpriseSamlDesiredAttributes());
+                consolidatedAttributes.addAll(getApplicationProvider().getEnterpriseSamlDesiredAttributes());
             }
             else if (profileUrn.equals(ProvisioningProfile.ENTERPRISE_SCIM.getUrn())) {
-                consolidatedAttributes.merge(getApplicationProvider().getEnterpriseScimDesiredAttributes());
+                consolidatedAttributes.addAll(getApplicationProvider().getEnterpriseScimDesiredAttributes());
             }
             else {
                 // This logic exists so that if additional Profiles are added in the future,

@@ -6,11 +6,9 @@ import org.fastfed4j.core.contract.Contract;
 import org.fastfed4j.core.contract.ContractProposal;
 import org.fastfed4j.core.contract.EnabledProfiles;
 import org.fastfed4j.core.exception.ErrorAccumulator;
+import org.fastfed4j.core.json.JsonObject;
 import org.fastfed4j.core.json.JsonParser;
-import org.fastfed4j.core.metadata.ApplicationProviderMetadata;
-import org.fastfed4j.core.metadata.IdentityProviderMetadata;
-import org.fastfed4j.core.metadata.RegistrationRequest;
-import org.fastfed4j.core.metadata.RegistrationResponse;
+import org.fastfed4j.core.metadata.*;
 import org.fastfed4j.profile.scim.enterprise.EnterpriseSCIM;
 import org.fastfed4j.test.data.*;
 import org.fastfed4j.test.evaluator.contract.ContractEvaluator;
@@ -20,6 +18,7 @@ import org.fastfed4j.test.evaluator.Operation;
 import org.fastfed4j.test.evaluator.metadata.IdentityProviderMetadataEvaluator;
 import org.fastfed4j.test.evaluator.metadata.RegistrationRequestEvaluator;
 import org.fastfed4j.test.evaluator.metadata.RegistrationResponseEvaluator;
+import org.json.simple.JSONObject;
 import org.junit.*;
 
 
@@ -198,5 +197,33 @@ public class JsonSerializationTest {
         ApplicationProviderMetadata rehydrated = ApplicationProviderMetadata.fromJson(localConfig, metadata.toJson().toString());
         Assert.assertEquals(true, metadata.getEnterpriseScimExtension().getCanSupportNestedGroups());
         Assert.assertEquals(123, (int)metadata.getEnterpriseScimExtension().getMaxGroupMembershipChanges());
+    }
+
+    @Test
+    public void testNormalizationOfScimAttributes() {
+        String json =
+                "     {" +
+                "       \"desired_attributes\": {\n" +
+                "         \"urn:ietf:params:fastfed:1.0:schemas:scim:2.0\": {\n" +
+                "           \"required_user_attributes\": [\n" +
+                "             \"  externalId  \",\n" +
+                "             \"urn:ietf:params:scim:schemas:core:2.0:User:userName\"\n" +
+                "           ],\n" +
+                "           \"required_group_attributes\": [\n" +
+                "             \" displayName \",\n" +
+                "             \"urn:ietf:params:scim:schemas:core:2.0:User:externalId\"\n" +
+                "           ]\n" +
+                "         }\n" +
+                "       }\n" +
+                "     }";
+
+        DesiredAttributes desiredAttributes = new DesiredAttributes(config);
+        desiredAttributes.hydrateAndValidate(json);
+        Assert.assertTrue(desiredAttributes.getRequiredUserAttributes().contains("externalId"));
+        Assert.assertTrue(desiredAttributes.getRequiredUserAttributes().contains("userName"));
+        Assert.assertEquals(2, desiredAttributes.getRequiredUserAttributes().size());
+        Assert.assertTrue(desiredAttributes.getRequiredGroupAttributes().contains("displayName"));
+        Assert.assertTrue(desiredAttributes.getRequiredGroupAttributes().contains("externalId"));
+        Assert.assertEquals(2, desiredAttributes.getRequiredUserAttributes().size());
     }
 }
